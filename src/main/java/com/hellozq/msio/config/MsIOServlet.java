@@ -1,5 +1,8 @@
 package com.hellozq.msio.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.catalina.connector.CoyoteOutputStream;
+import org.apache.catalina.connector.OutputBuffer;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.RequestFacade;
 import org.apache.tomcat.util.buf.MessageBytes;
@@ -11,10 +14,14 @@ import org.springframework.web.context.request.async.WebAsyncUtils;
 import org.springframework.web.servlet.*;
 import org.springframework.web.util.NestedServletException;
 
+import javax.servlet.ServletOutputStream;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 
 /**
  * 文件转发接口
@@ -23,13 +30,17 @@ import java.lang.reflect.Field;
  */
 public class MsIOServlet extends DispatcherServlet {
 
-    //定义辅助信息防止servlet名称导致的方法无法映射的问题
+    /**
+     * 定义辅助信息防止servlet名称导致的方法无法映射的问题
+     */
     private final String info = "javax.servlet.include.servlet_path";
 
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     protected void doDispatch(HttpServletRequest request, HttpServletResponse response) throws Exception {
         HttpServletRequest processedRequest = request;
+        //更改请求url
         changeRequestURI(request);
         //添加一个request
         processedRequest.setAttribute(info,getRequestUri(request));
@@ -51,11 +62,10 @@ public class MsIOServlet extends DispatcherServlet {
                     return;
                 }
 
-                // Determine handler adapter for the current request.
-                HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler());
-
                 // Process last-modified header, if supported by the handler.
                 String method = request.getMethod();
+                // Determine handler adapter for the current request.
+                HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler());
                 boolean isGet = "GET".equals(method);
                 if (isGet || "HEAD".equals(method)) {
                     long lastModified = ha.getLastModified(request, mappedHandler.getHandler());
@@ -74,12 +84,12 @@ public class MsIOServlet extends DispatcherServlet {
                 Object handler = mappedHandler.getHandler();
                 // Actually invoke the handler.
                 mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
-
+                //getResponseBody(response);
                 if (asyncManager.isConcurrentHandlingStarted()) {
                     return;
                 }
 
-                if(mv == null || !mv.hasView()){
+                if(mv != null && !mv.hasView()){
                     String defaultViewName = getDefaultViewName(request);
                     if (defaultViewName != null) {
                         mv.setViewName(defaultViewName);
@@ -117,6 +127,35 @@ public class MsIOServlet extends DispatcherServlet {
                 }
             }
         }
+    }
+
+    void downloadFileProcess(){
+
+    }
+
+    /**
+     * 解析response中方法返回的数据
+     * @param response 响应
+     * @param clazz 映射目标
+     * @param <T> 泛型对象
+     * @return 解析完之后的对象
+     * @throws IOException
+     * @throws NoSuchFieldException
+     * @throws IllegalAccessException
+     */
+    <T> T getResponseBody(HttpServletResponse response,Class<T> clazz)  throws IOException, NoSuchFieldException, IllegalAccessException {
+        CoyoteOutputStream outputStream = (CoyoteOutputStream)response.getOutputStream();
+        Field ob = CoyoteOutputStream.class.getDeclaredField("ob");
+        ob.setAccessible(true);
+        OutputBuffer outputBuffer = (OutputBuffer) ob.get(outputStream);
+        Field bb = outputBuffer.getClass().getDeclaredField("bb");
+        bb.setAccessible(true);
+        ByteBuffer byteBuffer = (ByteBuffer) bb.get(outputBuffer);
+        byte[] array = byteBuffer.array();
+        String s = new String(array, "UTF-8");
+        s = s.substring(0,s.lastIndexOf("}")+1);
+        T t = objectMapper.readValue(s, clazz);
+        return t;
     }
 
     private void changeRequestURI(ServletRequest request){
