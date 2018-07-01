@@ -1,6 +1,7 @@
 package com.hellozq.msio.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hellozq.msio.bean.common.CommonBean;
 import org.apache.catalina.connector.CoyoteOutputStream;
 import org.apache.catalina.connector.OutputBuffer;
 import org.apache.catalina.connector.Request;
@@ -34,8 +35,6 @@ public class MsIOServlet extends DispatcherServlet {
      * 定义辅助信息防止servlet名称导致的方法无法映射的问题
      */
     private final String info = "javax.servlet.include.servlet_path";
-
-    private ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     protected void doDispatch(HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -133,8 +132,9 @@ public class MsIOServlet extends DispatcherServlet {
 
     }
 
+
     /**
-     * 解析response中方法返回的数据
+     * 解析response中方法返回的数据并打包为对象
      * @param response 响应
      * @param clazz 映射目标
      * @param <T> 泛型对象
@@ -154,10 +154,15 @@ public class MsIOServlet extends DispatcherServlet {
         byte[] array = byteBuffer.array();
         String s = new String(array, "UTF-8");
         s = s.substring(0,s.lastIndexOf("}")+1);
-        T t = objectMapper.readValue(s, clazz);
+        T t = CommonBean.objectMapper.readValue(s, clazz);
         return t;
     }
 
+    /**
+     * 通过反射更改request的url，切除用于进入这个servlert的第一层url，
+     * 使用剩下的url进行模拟请求数据处理
+     * @param request
+     */
     private void changeRequestURI(ServletRequest request){
         RequestFacade requestFacade = (RequestFacade) request;
         Class clazz = RequestFacade.class;
