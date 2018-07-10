@@ -25,6 +25,7 @@
               <option value="$KOTLIN_BUNDLED$/lib/allopen-compiler-plugin.jar" />
             </array>
           </option>
+          <option name="version" value="true" />
         </compilerArguments>
       </configuration>
     </facet>

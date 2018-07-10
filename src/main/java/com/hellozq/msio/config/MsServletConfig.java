@@ -12,9 +12,9 @@ import org.springframework.web.servlet.DispatcherServlet;
  * 具体为上传的文件使用的接口的处理方式，定义新的servlet
  */
 @Configuration
-public class CamelServletConfig {
+public class MsServletConfig {
 
-    private static final Log log = LogFactory.getLog(CamelServletConfig.class);
+    private static final Log log = LogFactory.getLog(MsServletConfig.class);
 
     @Value("${spring.micro.listen.url:/upload/*}")
     private String listenerUrl;

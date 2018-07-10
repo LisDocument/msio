@@ -29,5 +29,5 @@ public @interface MsAutomatic {
      * isUseNowDate/isUseUUID优先级更高
      * @return 自动赋值，自动进行格式转换，能接受时间或者数字类型等基本类型的转换，不支持复杂类型
      */
-    String defalutValue() default "";
+    String defaultValue() default "";
 }
