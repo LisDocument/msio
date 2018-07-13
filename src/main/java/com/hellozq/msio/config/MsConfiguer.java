@@ -1,6 +1,6 @@
 package com.hellozq.msio.config;
 
-import org.springframework.context.annotation.Configuration;
+import com.hellozq.msio.config.derivative.InterceptConstruction;
 
 /**
  * @author bin
@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
  */
 public abstract class MsConfiguer {
 
-    public void addInterceptors(){
-
+    public InterceptConstruction addInterceptors(InterceptConstruction intercepts){
+        return intercepts;
     }
 }

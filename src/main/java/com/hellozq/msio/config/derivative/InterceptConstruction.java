@@ -6,4 +6,6 @@ package com.hellozq.msio.config.derivative;
  */
 public interface InterceptConstruction {
 
+    InterceptConstruction add();
+
 }
