@@ -31,10 +31,7 @@ public class StringRegexUtils {
         return detectedModel.indexOf(sign);
     }
 
-//    public static void main(String[] args){
-//        System.out.println(checkIsContain("1547$$111","$$"));
-//        System.out.println(checkIsContain("154\\$$111","$$"));
-//        System.out.println(checkIsContain("153\\$$$$111$$$","$$"));
-//        System.out.println("154\\$$111");
-//    }
+    public static void main(String[] args){
+        System.out.println("ssss"+null);
+    }
 }

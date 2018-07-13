@@ -71,6 +71,37 @@ public class MsIoContainer {
 
 
     /**
+     * 根据设置的时候给定的键获取其结构
+     * @param key 键
+     * @return 一个类或者一个Map的定向格式
+     */
+    public LinkedHashMap<String,Information> get(String key){
+        if(hotDeploySign){
+            return getTemporary(key) == null ? getCache(key) : getTemporary(key);
+        }else{
+            return getCache(key);
+        }
+    }
+
+    /**
+     * 从临时缓存池提取数据（热启动的时使用）
+     * @param key 键
+     * @return 定向格式
+     */
+    private LinkedHashMap<String,Information> getTemporary(String key){
+        return temporaryMappingCache.get(key);
+    }
+
+    /**
+     * 从常量库提取数据（pojo类注解实现的映射一般会被固化在这个池中不可修改）
+     * @param key 键
+     * @return 定向格式
+     */
+    private LinkedHashMap<String,Information> getCache(String key){
+        return mappingCache.get(key);
+    }
+
+    /**
      * 注解添加映射方法,专门为Pojo类使用的
      * @param clazz 需要被映射的方法
      * @return 是否被添加
@@ -125,19 +156,21 @@ public class MsIoContainer {
      * @param jsonData 翻译过来的数据
      * @return 是否成功
      */
-    public boolean addMapping(Map<String,LinkedHashMap<String,String>> jsonData) throws ClassNotFoundException,NoSuchMethodException{
+    public boolean addMapping(Map<String,LinkedHashMap<String,String>> jsonData) throws ClassNotFoundException,NoSuchMethodException,IllegalAccessException{
         if(jsonData.isEmpty()){
             return false;
         }
         for (Map.Entry<String, LinkedHashMap<String, String>> item : jsonData.entrySet()) {
             LinkedHashMap<String,Information> mappingItem = new LinkedHashMap<>();
-            Map<String, String> information = item.getValue();
+            LinkedHashMap<String, String> information = item.getValue();
             //若有该字段，则标识这个映射对象为一个类（配置文件配置的类）,获取后将其移除
             if(information.containsKey(CLASS_LABEL)){
                 Class pojo = Class.forName(information.remove(CLASS_LABEL));
                 classCache.put(item.getKey(),pojo);
             }
-            information.forEach((egName,cnName) ->{
+            //网上求证数据项标明顺序正常
+            for (String egName : information.keySet()) {
+                String cnName = information.get(egName);
                 Information info = new Information();
                 //方法获取
                 int index = StringRegexUtils.checkIsContain(cnName, FUNCTION_SIGN);
@@ -146,13 +179,24 @@ public class MsIoContainer {
                 }else{
                     info.setName(cnName.substring(0,index));
                     info.setInvokeObject(transFunctionContainer);
-                    //info.setMethod(containerClass.getDeclaredMethod(cnName.substring(index - 2),Object.class));
+                    info.setMethod(containerClass.getDeclaredMethod(cnName.substring(index - 2),Object.class));
                 }
                 //若实在要使用className作为一个属性传入，进行转义即可
                 if(egName.equals(TRANSLATION_SIGN + CLASS_LABEL)){
                     mappingItem.put(egName.substring(1),info);
+                }else{
+                    mappingItem.put(egName,info);
                 }
-            });
+            }
+            if(hotDeploySign){
+                temporaryMappingCache.put(item.getKey(),mappingItem);
+            }else{
+                Class clazz = classCache.get(item.getKey());
+                if(mappingCache.containsKey(item.getKey())){
+                    throw new IllegalAccessException("领域模型指向id重复，重复id：" + item.getKey() +
+                            (clazz == null ? ",请检查配置文件配置项是否重复：" : ("pojo类重复，类名为:" + clazz.getName())));
+                }
+            }
         }
         return true;
     }
