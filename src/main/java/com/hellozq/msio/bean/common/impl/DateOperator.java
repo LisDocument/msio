@@ -14,7 +14,7 @@ public class DateOperator implements Operator{
     @Override
     public Object dataOperator(Object obj) {
         if(obj instanceof Date){
-            return CommonBean.simpleDateFormat.format(obj);
+            return CommonBean.SIMPLE_DATE_FORMAT.format(obj);
         }
         return "DATA INITIAL FAILD";
     }

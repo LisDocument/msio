@@ -15,10 +15,10 @@ import java.lang.annotation.Target;
  * 仅用于修饰被MsOperator修饰的类
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.FIELD})
+@Target({ElementType.FIELD,ElementType.TYPE})
 public @interface MsItem {
 
-    String value();
+    String value() default "";
 
     String methodName() default "";
 

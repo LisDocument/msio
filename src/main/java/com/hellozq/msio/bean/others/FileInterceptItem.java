@@ -3,7 +3,6 @@ package com.hellozq.msio.bean.others;
 import org.apache.commons.fileupload.FileItem;
 import org.springframework.util.StringUtils;
 
-import java.io.InputStream;
 import java.util.regex.Pattern;
 
 /**
@@ -120,11 +119,11 @@ public class FileInterceptItem {
         return this;
     }
 
-    private FileInterceptCustomize<? extends InputStream> getFileInterceptCustomize() {
+    private FileInterceptCustomize<FileItem> getFileInterceptCustomize() {
         return fileInterceptCustomize;
     }
 
-    public FileInterceptItem setFileInterceptCustomize(FileInterceptCustomize<? extends InputStream> fileInterceptCustomize) {
+    public FileInterceptItem setFileInterceptCustomize(FileInterceptCustomize<FileItem> fileInterceptCustomize) {
         this.fileInterceptCustomize = fileInterceptCustomize;
         return this;
     }

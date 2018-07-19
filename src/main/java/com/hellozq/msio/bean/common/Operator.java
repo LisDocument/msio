@@ -5,6 +5,7 @@ package com.hellozq.msio.bean.common;
  * 操作者，用于处理数据导出的时候发生的数据转换问题
  * 数据转换者
  */
+@SuppressWarnings("unused")
 public interface Operator {
 
     /**

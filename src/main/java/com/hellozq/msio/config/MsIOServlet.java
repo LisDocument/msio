@@ -1,6 +1,5 @@
 package com.hellozq.msio.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hellozq.msio.bean.common.CommonBean;
 import org.apache.catalina.connector.CoyoteOutputStream;
 import org.apache.catalina.connector.OutputBuffer;
@@ -15,14 +14,12 @@ import org.springframework.web.context.request.async.WebAsyncUtils;
 import org.springframework.web.servlet.*;
 import org.springframework.web.util.NestedServletException;
 
-import javax.servlet.ServletOutputStream;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 
 /**
  * 文件转发接口
@@ -154,12 +151,12 @@ public class MsIOServlet extends DispatcherServlet {
         byte[] array = byteBuffer.array();
         String s = new String(array, "UTF-8");
         s = s.substring(0,s.lastIndexOf("}")+1);
-        T t = CommonBean.objectMapper.readValue(s, clazz);
+        T t = CommonBean.OBJECT_MAPPER.readValue(s, clazz);
         return t;
     }
 
     /**
-     * 通过反射更改request的url，切除用于进入这个servlert的第一层url，
+     * 通过反射更改request的url，切除用于进入这个servlet的第一层url，
      * 使用剩下的url进行模拟请求数据处理
      * @param request
      */

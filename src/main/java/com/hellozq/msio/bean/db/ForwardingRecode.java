@@ -10,6 +10,7 @@ import java.util.Date;
  * @author bin
  * 转发记录，用于转发数据的记录，相当于框架自带的存储方式
  */
+@SuppressWarnings("unused")
 @MsOperator(value = "forwardingRecode")
 public class ForwardingRecode {
 

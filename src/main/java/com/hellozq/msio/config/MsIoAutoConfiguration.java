@@ -14,11 +14,22 @@ public class MsIoAutoConfiguration {
 
     /**
      * 导出容器初始化
-     * @return
+     * @return 初始化
      */
     @ConditionalOnMissingBean(TransFunctionContainer.class)
     @Bean
     public TransFunctionContainer transFunctionContainer(){
         return new TransFunctionContainer() {};
+    }
+
+    /**
+     * 自动配置
+     * @return 初始化
+     */
+    @ConditionalOnMissingBean(AbstractMsConfigure.class)
+    @Bean
+    public AbstractMsConfigure msConfigure(){
+        return new AbstractMsConfigure() {
+        };
     }
 }

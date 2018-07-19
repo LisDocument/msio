@@ -31,7 +31,20 @@ public class StringRegexUtils {
         return detectedModel.indexOf(sign);
     }
 
-    public static void main(String[] args){
-        System.out.println("ssss"+null);
+    /**
+     * 提取默认值
+     * @param obj
+     * @param defaultValue
+     * @return
+     */
+    public static String getOrDefault(Object obj, String defaultValue){
+        if(null == obj || "".equals(obj)){
+            return defaultValue;
+        }
+        return obj.toString();
     }
+
+//    public static void main(String[] args){
+//        System.out.println("ssss"+null);
+//    }
 }

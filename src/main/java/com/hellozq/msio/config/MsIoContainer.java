@@ -3,27 +3,37 @@ package com.hellozq.msio.config;
 import com.hellozq.msio.anno.MsIgnore;
 import com.hellozq.msio.anno.MsItem;
 import com.hellozq.msio.anno.MsOperator;
+import com.hellozq.msio.anno.MsPackageScan;
+import com.hellozq.msio.bean.common.CommonBean;
 import com.hellozq.msio.bean.common.Operator;
 import com.hellozq.msio.bean.common.TransFunctionContainer;
+import com.hellozq.msio.utils.ClassUtils;
 import com.hellozq.msio.utils.StringRegexUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.system.ApplicationHome;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import javax.annotation.PostConstruct;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * @author 内部映射生成方法
  * MsIo上下文全文容器，包含配置项缓冲项等
  */
+@ConditionalOnMissingBean(value = MsIoContainer.class)
 @Component
 @SuppressWarnings("unused")
 public class MsIoContainer {
@@ -33,7 +43,9 @@ public class MsIoContainer {
 
     private Class<? extends TransFunctionContainer> containerClass;
 
-    private final TransFunctionContainer transFunctionContainer;
+    private TransFunctionContainer transFunctionContainer;
+
+    private AbstractMsConfigure abstractMsConfigure;
 
     private final Log log = LogFactory.getLog(MsIoContainer.class);
 
@@ -42,6 +54,8 @@ public class MsIoContainer {
     private final static String TRANSLATION_SIGN = "\\";
 
     private final static String FUNCTION_SIGN = "$$";
+
+    private final static String FILE_NAME = "msio.json";
     /**
      * 映射缓存池
      */
@@ -64,11 +78,95 @@ public class MsIoContainer {
      * @param transFunctionContainer 导出操作容器
      */
     @Autowired
-    public MsIoContainer(TransFunctionContainer transFunctionContainer) {
+    public MsIoContainer(TransFunctionContainer transFunctionContainer,AbstractMsConfigure abstractMsConfigure) {
         this.transFunctionContainer = transFunctionContainer;
+        this.abstractMsConfigure = abstractMsConfigure;
         containerClass = transFunctionContainer.getClass();
     }
 
+    /**
+     * 初始化对文件进行读取以及类进行加载
+     */
+    @PostConstruct
+    public void init(){
+        initJson();
+        //类加载
+        MsPackageScan scan = abstractMsConfigure.getClass().getAnnotation(MsPackageScan.class);
+        if(scan == null || StringUtils.isEmpty(scan)){
+            return;
+        }
+        List<Class<?>> classes = new ArrayList<>();
+        for (String packageName : scan.packageName()) {
+            classes.addAll(ClassUtils.getClasses(packageName));
+        }
+        for (Class<?> clazz : classes) {
+            if(clazz.getAnnotation(MsOperator.class) != null){
+                try {
+                    addMapping(clazz);
+                }catch (NoSuchMethodException | InstantiationException | IllegalAccessException e){
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
+     * 遍历匹配获取映射,仅允许数据
+     * @param titles 需要被匹配的头
+     * @return 返回映射
+     */
+    @SuppressWarnings("all")
+    public String match(List<String> titles){
+        Map<String, LinkedHashMap<String,Information>> allRewords = new HashMap<>(16);
+        if(hotDeploySign){
+            initJson();
+            allRewords.putAll(mappingCache);
+            allRewords.putAll(temporaryMappingCache);
+        }else{
+            allRewords = mappingCache;
+        }
+        List<String> keys = new ArrayList<>();
+        for (String key : allRewords.keySet()) {
+            LinkedHashMap<String, Information> value = allRewords.get(key);
+            List<String> datum = value.values().stream().map(Information::getName).collect(Collectors.toList());
+            long count = titles.parallelStream().filter(datum::contains).count();
+            if(count != titles.size()){
+                continue;
+            }
+            keys.add(key);
+        }
+        if(keys.size() == 1){
+            return keys.get(0);
+        }else{
+            Set<String> classKeys = classCache.keySet();
+            return keys.stream().sorted((k1,k2) -> (classKeys.contains(k1) ? 1 : -1)).limit(1).collect(Collectors.toList()).get(0);
+        }
+    }
+
+    /**
+     * 根据key获取其缓存的的类型，如果未找到，返回Map
+     * @param key 索引值
+     * @return 缓存的类
+     */
+    public Class<?> getClazz(String key){
+        if(null == key){
+            return Map.class;
+        }
+        return classCache.getOrDefault(key, Map.class);
+    }
+
+    /**
+     * 根据类的Class文件获取映射
+     * @param key Class对象
+     * @return 返回映射
+     */
+    public LinkedHashMap<String,Information> get(Class<?> key){
+        MsOperator operator = key.getAnnotation(MsOperator.class);
+        if(operator == null){
+            return null;
+        }
+        return get(operator.value());
+    }
 
     /**
      * 根据设置的时候给定的键获取其结构
@@ -76,6 +174,9 @@ public class MsIoContainer {
      * @return 一个类或者一个Map的定向格式
      */
     public LinkedHashMap<String,Information> get(String key){
+        if(null == key){
+            return null;
+        }
         if(hotDeploySign){
             return getTemporary(key) == null ? getCache(key) : getTemporary(key);
         }else{
@@ -89,6 +190,7 @@ public class MsIoContainer {
      * @return 定向格式
      */
     private LinkedHashMap<String,Information> getTemporary(String key){
+        initJson();
         return temporaryMappingCache.get(key);
     }
 
@@ -101,11 +203,46 @@ public class MsIoContainer {
         return mappingCache.get(key);
     }
 
+
+    /**
+     * 配置文件的加载
+     */
+    private void initJson(){
+        String jsonMapper = null;
+        try {
+            //获取文件外的配置文件
+            ApplicationHome applicationHome = new ApplicationHome(getClass());
+            File dir = applicationHome.getDir();
+            File file = new File(dir.getPath() + File.separator + FILE_NAME);
+            if(file.exists()){
+                jsonMapper = IOUtils.toString(new FileInputStream(file));
+            }else {
+                //若文件外无数据则应用文件内的数据
+                jsonMapper = IOUtils.toString(this.getClass().getResourceAsStream(File.separator + FILE_NAME));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (NullPointerException e){
+            log.error("map配置文件为空，或者文件内容为空，默认用户不需要配置操作，初始化配置文件操作跳过");
+            return;
+        }
+        try {
+            LinkedHashMap linkedHashMap = CommonBean.OBJECT_MAPPER.readValue(jsonMapper, LinkedHashMap.class);
+            addMapping(linkedHashMap);
+        } catch (IOException e) {
+            log.error("配置文件格式错误，请好好检查");
+            e.printStackTrace();
+        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException e){
+            e.printStackTrace();
+        }
+    }
+
     /**
      * 注解添加映射方法,专门为Pojo类使用的
      * @param clazz 需要被映射的方法
      * @return 是否被添加
      */
+    @SuppressWarnings("all")
     public boolean addMapping(Class clazz) throws NoSuchMethodException,InstantiationException,IllegalAccessException{
         MsOperator msOperator = (MsOperator) clazz.getDeclaredAnnotation(MsOperator.class);
         if(mappingCache.containsKey(msOperator.value())){
@@ -142,7 +279,7 @@ public class MsIoContainer {
                 //需要优化
                 information.setOperator(annotation.transFormOperator().newInstance());
             }
-            information.setName(annotation.value());
+            information.setName(StringRegexUtils.getOrDefault(annotation.value(),field.getName()));
             mappingItem.put(field.getName(),information);
         }
 
@@ -156,21 +293,23 @@ public class MsIoContainer {
      * @param jsonData 翻译过来的数据
      * @return 是否成功
      */
-    public boolean addMapping(Map<String,LinkedHashMap<String,String>> jsonData) throws ClassNotFoundException,NoSuchMethodException,IllegalAccessException{
+    @SuppressWarnings("all")
+    public boolean addMapping(Map jsonData) throws ClassNotFoundException,NoSuchMethodException,IllegalAccessException{
         if(jsonData.isEmpty()){
             return false;
         }
-        for (Map.Entry<String, LinkedHashMap<String, String>> item : jsonData.entrySet()) {
+        for (Object o : jsonData.entrySet()) {
+            Map.Entry<String,LinkedHashMap<Object,Object>> item = (Map.Entry<String,LinkedHashMap<Object,Object>>) o;
             LinkedHashMap<String,Information> mappingItem = new LinkedHashMap<>();
-            LinkedHashMap<String, String> information = item.getValue();
+            LinkedHashMap<Object, Object> information = item.getValue();
             //若有该字段，则标识这个映射对象为一个类（配置文件配置的类）,获取后将其移除
             if(information.containsKey(CLASS_LABEL)){
-                Class pojo = Class.forName(information.remove(CLASS_LABEL));
+                Class pojo = Class.forName(information.remove(CLASS_LABEL).toString());
                 classCache.put(item.getKey(),pojo);
             }
             //网上求证数据项标明顺序正常
-            for (String egName : information.keySet()) {
-                String cnName = information.get(egName);
+            for (Object egName : information.keySet()) {
+                String cnName = information.get(egName).toString();
                 Information info = new Information();
                 //方法获取
                 int index = StringRegexUtils.checkIsContain(cnName, FUNCTION_SIGN);
@@ -183,9 +322,9 @@ public class MsIoContainer {
                 }
                 //若实在要使用className作为一个属性传入，进行转义即可
                 if(egName.equals(TRANSLATION_SIGN + CLASS_LABEL)){
-                    mappingItem.put(egName.substring(1),info);
+                    mappingItem.put(egName.toString().substring(1),info);
                 }else{
-                    mappingItem.put(egName,info);
+                    mappingItem.put(egName.toString(),info);
                 }
             }
             if(hotDeploySign){
@@ -200,13 +339,13 @@ public class MsIoContainer {
         }
         return true;
     }
-    /**
 
+    /**
      * @author bin
      * 用于存储基本信息的数据集
      * 保存当前代理对象，当前变量的中文注释，以及其缓冲的方法
      */
-    private class Information{
+    public class Information{
 
         private String name;
 
@@ -246,6 +385,32 @@ public class MsIoContainer {
 
         private void setName(String name) {
             this.name = name;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            Information that = (Information) o;
+
+            return (name != null ? name.equals(that.name) : that.name == null) &&
+                    (method != null ? method.equals(that.method) : that.method == null) &&
+                    (invokeObject != null ? invokeObject.equals(that.invokeObject) : that.invokeObject == null) &&
+                    (operator != null ? operator.equals(that.operator) : that.operator == null);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = name != null ? name.hashCode() : 0;
+            result = 31 * result + (method != null ? method.hashCode() : 0);
+            result = 31 * result + (invokeObject != null ? invokeObject.hashCode() : 0);
+            result = 31 * result + (operator != null ? operator.hashCode() : 0);
+            return result;
         }
     }
 }

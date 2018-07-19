@@ -1,5 +1,7 @@
 package com.hellozq.msio.anno;
 
+import org.springframework.core.annotation.AliasFor;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -11,8 +13,14 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD})
+@MsItem
+@SuppressWarnings("unused")
 public @interface MsAutomatic {
 
+    @AliasFor(
+            annotation = MsItem.class
+    )
+    String value() default "";
     /**
      *
      * @return 是否自动生成当前时间,该为true的情况只能修改Date类型的数据

@@ -9,10 +9,11 @@ import java.text.SimpleDateFormat;
  * 静态中间变量，
  * 能够作为不改变的工具数据一直存在的变量
  */
+@SuppressWarnings("unused")
 public class CommonBean {
 
-    public static final ObjectMapper objectMapper = new ObjectMapper();
+    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    public static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    public static final SimpleDateFormat SIMPLE_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
 }
