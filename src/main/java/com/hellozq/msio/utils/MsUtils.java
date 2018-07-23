@@ -1,5 +1,6 @@
 package com.hellozq.msio.utils;
 
+import com.hellozq.msio.config.MsIoContainer;
 import org.apache.poi.hssf.usermodel.HSSFDateUtil;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
@@ -10,9 +11,7 @@ import org.springframework.util.StringUtils;
 
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author bin
@@ -20,6 +19,18 @@ import java.util.List;
  */
 @SuppressWarnings("unused")
 public class MsUtils {
+
+    /**
+     * 映射关系转换方法
+     * @param data 映射关系
+     * @return 转换后的简单反转映射关系
+     */
+    public static LinkedHashMap<String, String> mapInversion(LinkedHashMap<String,MsIoContainer.Information> data){
+        LinkedHashMap<String, String> result = new LinkedHashMap<>(16);
+        data.forEach((k,v) -> result.put(v.getName(),k));
+        return result;
+    }
+
     /**
      * 判断指定的单元格是否是合并单元格
      * @param row 行下标
@@ -78,7 +89,7 @@ public class MsUtils {
      * @param cell 单元格
      * @return 读取到的数据
      */
-    private static String getStringValueFromCell(Cell cell) {
+    public static String getStringValueFromCell(Cell cell) {
         SimpleDateFormat sFormat = new SimpleDateFormat("MM/dd/yyyy");
         DecimalFormat decimalFormat = new DecimalFormat("#.#");
         String cellValue = "";

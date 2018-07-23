@@ -1,9 +1,12 @@
 package com.hellozq.msio.config;
 
+import com.hellozq.msio.bean.common.IFormatConversion;
 import com.hellozq.msio.bean.common.TransFunctionContainer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.Date;
 
 /**
  * @author bin
@@ -23,13 +26,24 @@ public class MsIoAutoConfiguration {
     }
 
     /**
-     * 自动配置
+     * 配置类初始化
      * @return 初始化
      */
     @ConditionalOnMissingBean(AbstractMsConfigure.class)
     @Bean
     public AbstractMsConfigure msConfigure(){
         return new AbstractMsConfigure() {
+        };
+    }
+
+    /**
+     * 转换容器初始化
+     * @return 初始化
+     */
+    @ConditionalOnMissingBean(IFormatConversion.class)
+    @Bean
+    public IFormatConversion formatConversion(){
+        return new IFormatConversion() {
         };
     }
 }

@@ -8,16 +8,36 @@ import java.net.JarURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 
 /**
  * 类相关工具
+ * @author bin
  */
 @SuppressWarnings("all")
 public class ClassUtils {
 
+    /**
+     * 该工具类维护的映射方法缓存
+     * 不对外展示只对工具类中的方法负责
+     */
+    private static ConcurrentHashMap<String, MethodAccess> methodAccessCache = new ConcurrentHashMap<>();
+
+    /**
+     * 私有获取MethodAccess的方法，
+     * @param clazz
+     * @return
+     */
+    public static MethodAccess getMethodAccess(Class<?> clazz){
+        String name = clazz.getName();
+        if(!methodAccessCache.containsKey(name)){
+            methodAccessCache.put(name,MethodAccess.get(clazz));
+        }
+        return methodAccessCache.get(name);
+    }
     /**
      * 根据属性名自动获取其中的数据
      * @param fieldName 属性名称
@@ -25,9 +45,9 @@ public class ClassUtils {
      * @return 该属性值
      * @throws Exception 抛出了三个异常
      */
-    public static Object getFieldValue(String fieldName, Object o, MethodAccess methodAccess) throws Exception{
+    public static Object getFieldValue(String fieldName, Object o, Class<?> clazz) throws Exception{
         String methodName = "get" + fieldName.substring(0,1).toUpperCase() + fieldName.substring(1);
-        return methodAccess.invoke(o,methodName);
+        return getMethodAccess(clazz).invoke(o,methodName);
     }
 
     /**
@@ -37,9 +57,9 @@ public class ClassUtils {
      * @param o 对象
      * @throws Exception 抛出了三个异常
      */
-    public static void setFieldValue(Object fieldValue,String fieldName,Object o,MethodAccess methodAccess) throws Exception{
+    public static void setFieldValue(Object fieldValue,String fieldName,Object o,Class<?> clazz) throws Exception{
         String methodName = "set" + fieldName.substring(0,1).toUpperCase() + fieldName.substring(1);
-        methodAccess.invoke(o,methodName,fieldValue);
+        getMethodAccess(clazz).invoke(o,methodName,fieldValue);
     }
 
 

@@ -1,11 +1,17 @@
 package com.hellozq.msio.unit;
 
+import com.esotericsoftware.reflectasm.MethodAccess;
+import com.hellozq.msio.bean.common.IFormatConversion;
 import com.hellozq.msio.config.MsIoContainer;
 import com.hellozq.msio.exception.IndexOutOfSheetSizeException;
 import com.hellozq.msio.exception.UnsupportFormatException;
+import com.hellozq.msio.utils.ClassUtils;
 import com.hellozq.msio.utils.MsUtils;
 import com.hellozq.msio.utils.SpringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
@@ -13,9 +19,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import javax.validation.constraints.NotNull;
 import java.io.InputStream;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author bin
@@ -23,6 +27,8 @@ import java.util.Map;
  */
 @SuppressWarnings("unused")
 public class ExcelFactory {
+
+    private static final Log log = LogFactory.getLog(ExcelFactory.class);
 
     public SimpleExcelBean getSimpleInstance(Class<?> generateClass, boolean isTuring,@NotNull InputStream file){
         return new SimpleExcelBean(generateClass,isTuring,file);
@@ -70,6 +76,8 @@ public class ExcelFactory {
 
         private MsIoContainer msIoContainer;
 
+        private IFormatConversion formatConversion;
+
         /**
          * 初始化
          * @param generateClass 指派导出类型，为null则自行查询
@@ -81,18 +89,21 @@ public class ExcelFactory {
             this.isTuring = isTuring;
             this.workbook = setWorkbook(file);
             msIoContainer = SpringUtils.getBean(MsIoContainer.class);
+            this.formatConversion = SpringUtils.getBean(IFormatConversion.class);
+
         }
 
         /**
          * 获取总页数
-         * @return
+         * @return 页数
          */
         protected int getPageSize(){
             return workbook.getNumberOfSheets();
         }
 
-
+        @SuppressWarnings("unchecked")
         protected List getPageContent(int pageIndex) throws IndexOutOfSheetSizeException,UnsupportFormatException{
+
             if(getPageSize() <= pageIndex){
                 throw new IndexOutOfSheetSizeException("页码最大值为"+getPageSize()+"的数据，强行获取"+pageIndex+"页数据");
             }
@@ -113,7 +124,10 @@ public class ExcelFactory {
             }
             //正式解析
             List<String> titles = MsUtils.getRowDataInString(rowIndex, 0, 0, sheetNow);
-            LinkedHashMap<String, MsIoContainer.Information> mapping = null;
+            if(titles == null || titles.size() == 0){
+                throw new NullPointerException("标题行为空，请检查格式");
+            }
+            LinkedHashMap<String, MsIoContainer.Information> mapping;
             //若clazz为null，则自动匹配
             if(clazz == null || isChangeClass){
                 String match = msIoContainer.match(titles);
@@ -122,11 +136,79 @@ public class ExcelFactory {
             }else{
                 mapping = msIoContainer.get(clazz);
             }
-
-            return null;
+            LinkedHashMap<String, String> inversion = MsUtils.mapInversion(mapping);
+            if(inversion.isEmpty()){
+                titles.forEach(s -> inversion.put(s,s));
+            }
+            List list = new ArrayList();
+            if(clazz == Map.class){
+                for (int i = rowIndex; i < sheetNow.getLastRowNum(); i++) {
+                    list.add(conversionMap(sheetNow.getRow(rowIndex), inversion, titles));
+                }
+            }else{
+                for (int i = rowIndex; i < sheetNow.getLastRowNum(); i++) {
+                    list.add(conversionPojo(sheetNow.getRow(rowIndex), inversion, titles, clazz, mapping));
+                }
+            }
+            return list;
         }
 
+        /**
+         * 内置工具方法，获取当前行的解析结果
+         * @param row 待处理数据
+         * @param inversion 映射数据
+         * @param titles 提取出的标题数据
+         * @return 解析结果
+         */
+        private Map<String,String> conversionMap(Row row, LinkedHashMap<String, String> inversion, List<String> titles){
+            Map<String, String> result = new HashMap<>(16);
+            for (int i = 0; i < titles.size(); i++) {
+                String value = MsUtils.getStringValueFromCell(row.getCell(i));
+                result.put(inversion.get(titles.get(i)),value);
+            }
+            return result;
+        }
 
+        /**
+         * 内置工具方法，获取当前行的解析Pojo结果
+         * @param row 待处理行数据
+         * @param inversion 映射数据
+         * @param titles 提取出来的标题数据
+         * @param clazz Pojo对应类
+         * @param auto 自动赋值方法
+         * @return 解析结果
+         */
+        private Object conversionPojo(Row row, LinkedHashMap<String, String> inversion, List<String> titles, Class<?> clazz,
+                                      LinkedHashMap<String,MsIoContainer.Information> auto) throws NoSuchMethodException{
+            Object obj = clazz.newInstance();
+            for (int i = 0; i < titles.size(); i++) {
+                String value = MsUtils.getStringValueFromCell(row.getCell(i));
+                String title = titles.get(i);
+                String egTitle = inversion.get(title);
+                MsIoContainer.Information information = auto.get(title);
+                if(information.getFieldType() == String.class){
+                    ClassUtils.setFieldValue(value, egTitle, obj, clazz);
+                }else{
+                    String simpleName = "fromStringto" + information.getFieldType().getSimpleName();
+                    MethodAccess methodAccess = ClassUtils.getMethodAccess(formatConversion.getClass());
+                    int methodIndex = 0;
+                    try {
+                        methodIndex = methodAccess.getIndex(simpleName, String.class);
+                    }catch (IllegalArgumentException e){
+                        log.error("尝试使用" + simpleName + "获取方法失败，正在尝试使用全名获取");
+                        String flexName = "fromStringto" + information.getFieldType().getName().replaceAll(".", "");
+                        try {
+                            methodIndex = methodAccess.getIndex(flexName, String.class);
+                        }catch (IllegalArgumentException e1){
+                            log.error("尝试使用" + flexName + "获取方法失败，抛出异常，请检查是否存在方法或者方法是否设置为non-private");
+                            throw new NoSuchMethodException("无法找到方法" + simpleName + "、" + flexName);
+                        }
+                    }
+                    Object invoke = methodAccess.invoke(formatConversion, methodIndex, String.class, value);
+                    ClassUtils.setFieldValue(value, egTitle, obj, clazz);
+                }
+            }
+        }
     }
 
     /**

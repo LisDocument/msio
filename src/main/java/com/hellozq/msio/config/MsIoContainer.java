@@ -1,9 +1,6 @@
 package com.hellozq.msio.config;
 
-import com.hellozq.msio.anno.MsIgnore;
-import com.hellozq.msio.anno.MsItem;
-import com.hellozq.msio.anno.MsOperator;
-import com.hellozq.msio.anno.MsPackageScan;
+import com.hellozq.msio.anno.*;
 import com.hellozq.msio.bean.common.CommonBean;
 import com.hellozq.msio.bean.common.Operator;
 import com.hellozq.msio.bean.common.TransFunctionContainer;
@@ -65,6 +62,11 @@ public class MsIoContainer {
      * 类映射缓冲池
      */
     private Map<String,Class> classCache = new HashMap<>();
+
+    /**
+     * 对象缓冲池
+     */
+    private Map<Class,Object> instanceCache = new HashMap<>();
 
     /**
      * 仅有热部署被启用时才启用临时映射存储池，若热部署标志为true的情况下，所有通过配置文件引入的对象映射会被驻留在此处，
@@ -137,9 +139,11 @@ public class MsIoContainer {
         }
         if(keys.size() == 1){
             return keys.get(0);
-        }else{
+        }else if(keys.size() > 1){
             Set<String> classKeys = classCache.keySet();
             return keys.stream().sorted((k1,k2) -> (classKeys.contains(k1) ? 1 : -1)).limit(1).collect(Collectors.toList()).get(0);
+        }else{
+            return null;
         }
     }
 
@@ -163,7 +167,7 @@ public class MsIoContainer {
     public LinkedHashMap<String,Information> get(Class<?> key){
         MsOperator operator = key.getAnnotation(MsOperator.class);
         if(operator == null){
-            return null;
+            return new LinkedHashMap<>();
         }
         return get(operator.value());
     }
@@ -175,7 +179,7 @@ public class MsIoContainer {
      */
     public LinkedHashMap<String,Information> get(String key){
         if(null == key){
-            return null;
+            return new LinkedHashMap<>();
         }
         if(hotDeploySign){
             return getTemporary(key) == null ? getCache(key) : getTemporary(key);
@@ -203,6 +207,23 @@ public class MsIoContainer {
         return mappingCache.get(key);
     }
 
+    /**
+     * 为节省资源创建的一个可复用的方法体
+     * @param clazz Class对象，用于自动生成处理对象
+     * @return Class对象生成的一个对应的对象
+     */
+    @SuppressWarnings("unchecked")
+    private <T> T newInstance(Class<T> clazz){
+        if(!instanceCache.containsKey(clazz)){
+            try {
+                instanceCache.put(clazz, clazz.newInstance());
+            } catch (InstantiationException | IllegalAccessException e) {
+                log.error("通过class创建对象失败，检查是否私有化了构造函数，或者未定义无参构造函数");
+                e.printStackTrace();
+            }
+        }
+        return (T)instanceCache.get(clazz);
+    }
 
     /**
      * 配置文件的加载
@@ -243,7 +264,7 @@ public class MsIoContainer {
      * @return 是否被添加
      */
     @SuppressWarnings("all")
-    public boolean addMapping(Class clazz) throws NoSuchMethodException,InstantiationException,IllegalAccessException{
+    public boolean addMapping(Class<?> clazz) throws NoSuchMethodException,InstantiationException,IllegalAccessException{
         MsOperator msOperator = (MsOperator) clazz.getDeclaredAnnotation(MsOperator.class);
         if(mappingCache.containsKey(msOperator.value())){
             throw new IllegalAccessException("领域模型指向id重复，重复id：" + msOperator.value() + ",请检查类：" +
@@ -276,9 +297,10 @@ public class MsIoContainer {
                 }
                 //没有,自动调用默认的类型转换方法
             }else{
-                //需要优化
-                information.setOperator(annotation.transFormOperator().newInstance());
+                information.setOperator(newInstance(annotation.transFormOperator()));
             }
+            information.setFieldType(field.getType());
+            information.setAutomatic(field.getAnnotation(MsAutomatic.class));
             information.setName(StringRegexUtils.getOrDefault(annotation.value(),field.getName()));
             mappingItem.put(field.getName(),information);
         }
@@ -294,7 +316,7 @@ public class MsIoContainer {
      * @return 是否成功
      */
     @SuppressWarnings("all")
-    public boolean addMapping(Map jsonData) throws ClassNotFoundException,NoSuchMethodException,IllegalAccessException{
+    public boolean addMapping(Map jsonData) throws ClassNotFoundException,NoSuchMethodException,IllegalAccessException,NoSuchFieldException{
         if(jsonData.isEmpty()){
             return false;
         }
@@ -302,9 +324,10 @@ public class MsIoContainer {
             Map.Entry<String,LinkedHashMap<Object,Object>> item = (Map.Entry<String,LinkedHashMap<Object,Object>>) o;
             LinkedHashMap<String,Information> mappingItem = new LinkedHashMap<>();
             LinkedHashMap<Object, Object> information = item.getValue();
+            Class pojo = null;
             //若有该字段，则标识这个映射对象为一个类（配置文件配置的类）,获取后将其移除
             if(information.containsKey(CLASS_LABEL)){
-                Class pojo = Class.forName(information.remove(CLASS_LABEL).toString());
+                pojo = Class.forName(information.remove(CLASS_LABEL).toString());
                 classCache.put(item.getKey(),pojo);
             }
             //网上求证数据项标明顺序正常
@@ -319,6 +342,10 @@ public class MsIoContainer {
                     info.setName(cnName.substring(0,index));
                     info.setInvokeObject(transFunctionContainer);
                     info.setMethod(containerClass.getDeclaredMethod(cnName.substring(index - 2),Object.class));
+                }
+                if(pojo != null){
+                    Field field = pojo.getField(egName.toString());
+                    info.setFieldType(field.getType());
                 }
                 //若实在要使用className作为一个属性传入，进行转义即可
                 if(egName.equals(TRANSLATION_SIGN + CLASS_LABEL)){
@@ -354,6 +381,26 @@ public class MsIoContainer {
         private Object invokeObject;
 
         private Operator operator;
+
+        private MsAutomatic automatic;
+
+        private Class<?> fieldType;
+
+        public Class<?> getFieldType() {
+            return fieldType;
+        }
+
+        private void setFieldType(Class<?> fieldType) {
+            this.fieldType = fieldType;
+        }
+
+        public MsAutomatic getAutomatic() {
+            return automatic;
+        }
+
+        private void setAutomatic(MsAutomatic automatic) {
+            this.automatic = automatic;
+        }
 
         public Operator getOperator() {
             return operator;
