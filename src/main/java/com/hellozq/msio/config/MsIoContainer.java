@@ -154,7 +154,7 @@ public class MsIoContainer {
      */
     public Class<?> getClazz(String key){
         if(null == key){
-            return Map.class;
+            return null;
         }
         return classCache.getOrDefault(key, Map.class);
     }
@@ -253,7 +253,7 @@ public class MsIoContainer {
         } catch (IOException e) {
             log.error("配置文件格式错误，请好好检查");
             e.printStackTrace();
-        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException e){
+        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | NoSuchFieldException e){
             e.printStackTrace();
         }
     }

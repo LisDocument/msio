@@ -43,9 +43,8 @@ public class ClassUtils {
      * @param fieldName 属性名称
      * @param o 对象
      * @return 该属性值
-     * @throws Exception 抛出了三个异常
      */
-    public static Object getFieldValue(String fieldName, Object o, Class<?> clazz) throws Exception{
+    public static Object getFieldValue(String fieldName, Object o, Class<?> clazz){
         String methodName = "get" + fieldName.substring(0,1).toUpperCase() + fieldName.substring(1);
         return getMethodAccess(clazz).invoke(o,methodName);
     }
@@ -55,9 +54,8 @@ public class ClassUtils {
      * @param fieldValue 属性值
      * @param fieldName 属性名
      * @param o 对象
-     * @throws Exception 抛出了三个异常
      */
-    public static void setFieldValue(Object fieldValue,String fieldName,Object o,Class<?> clazz) throws Exception{
+    public static void setFieldValue(Object fieldValue,String fieldName,Object o,Class<?> clazz){
         String methodName = "set" + fieldName.substring(0,1).toUpperCase() + fieldName.substring(1);
         getMethodAccess(clazz).invoke(o,methodName,fieldValue);
     }
