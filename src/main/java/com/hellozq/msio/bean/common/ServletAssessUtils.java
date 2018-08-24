@@ -1,133 +1,103 @@
-package com.hellozq.msio.config;
+package com.hellozq.msio.bean.common;
 
-import com.hellozq.msio.bean.common.CommonBean;
 import org.apache.catalina.connector.CoyoteOutputStream;
 import org.apache.catalina.connector.OutputBuffer;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.RequestFacade;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.tomcat.util.buf.MessageBytes;
+import org.springframework.core.DefaultParameterNameDiscoverer;
+import org.springframework.core.MethodParameter;
+import org.springframework.core.ParameterNameDiscoverer;
 import org.springframework.lang.Nullable;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.context.request.ServletWebRequest;
-import org.springframework.web.context.request.async.WebAsyncManager;
-import org.springframework.web.context.request.async.WebAsyncUtils;
-import org.springframework.web.servlet.*;
-import org.springframework.web.util.NestedServletException;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.method.support.HandlerMethodArgumentResolverComposite;
+import org.springframework.web.method.support.InvocableHandlerMethod;
+import org.springframework.web.servlet.AsyncHandlerInterceptor;
+import org.springframework.web.servlet.HandlerExecutionChain;
+import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.servlet.ModelAndView;
 
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.constraints.NotNull;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 
 /**
- * 文件转发接口
- * 控制文件转发，接管部分接口
+ * 辅助工具，用于修改并模拟操作
  * @author bin
+ * @date 8/24
  */
-public class MsIOServlet extends DispatcherServlet {
+final class ServletAssessUtils{
 
-    /**
-     * 定义辅助信息防止servlet名称导致的方法无法映射的问题
-     */
-    private final String info = "javax.servlet.include.servlet_path";
+    Log log = LogFactory.getLog(ServletAssessUtils.class);
 
-    @Override
-    protected void doDispatch(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        HttpServletRequest processedRequest = request;
-        //更改请求url
-        changeRequestURI(request);
-        //添加一个request
-        processedRequest.setAttribute(info,getRequestUri(request));
-        HandlerExecutionChain mappedHandler = null;
-        boolean multipartRequestParsed = false;
-        WebAsyncManager asyncManager = WebAsyncUtils.getAsyncManager(request);
+    private ParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
+
+    private HandlerMethodArgumentResolverComposite argumentResolvers = new HandlerMethodArgumentResolverComposite();
+
+    <T> T getRequestResult(HttpServletRequest request, HttpServletResponse response,HandlerExecutionChain handle) throws Exception{
+        ServletWebRequest webRequest = new ServletWebRequest(request, response);
+        HandlerMethod handlerMethod = (HandlerMethod) handle.getHandler();
         try {
-            ModelAndView mv = null;
-            Exception dispatchException = null;
-
-            try {
-                processedRequest = checkMultipart(request);
-                multipartRequestParsed = (processedRequest != request);
-
-                // Determine handler for the current request.
-                mappedHandler = getHandler(processedRequest);
-                if (mappedHandler == null || mappedHandler.getHandler() == null) {
-                    noHandlerFound(processedRequest, response);
-                    return;
-                }
-
-                // Process last-modified header, if supported by the handler.
-                String method = request.getMethod();
-                // Determine handler adapter for the current request.
-                HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler());
-                boolean isGet = "GET".equals(method);
-                if (isGet || "HEAD".equals(method)) {
-                    long lastModified = ha.getLastModified(request, mappedHandler.getHandler());
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Last-Modified value for [" + getRequestUri(request) + "] is: " + lastModified);
-                    }
-                    if (new ServletWebRequest(request, response).checkNotModified(lastModified) && isGet) {
-                        return;
-                    }
-                }
-
-                if (!applyPreHandle(mappedHandler, processedRequest, response)) {
-                    return;
-                }
-
-                Object handler = mappedHandler.getHandler();
-                // Actually invoke the handler.
-                mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
-                //getResponseBody(response);
-                if (asyncManager.isConcurrentHandlingStarted()) {
-                    return;
-                }
-
-                if(mv != null && !mv.hasView()){
-                    String defaultViewName = getDefaultViewName(request);
-                    if (defaultViewName != null) {
-                        mv.setViewName(defaultViewName);
-                    }
-                }
-                applyPostHandle(mappedHandler,processedRequest, response, mv);
-            }
-            catch (Exception ex) {
-                dispatchException = ex;
-            }
-            catch (Throwable err) {
-                // As of 4.3, we're processing Errors thrown from handler methods as well,
-                // making them available for @ExceptionHandler methods and other scenarios.
-                dispatchException = new NestedServletException("Handler dispatch failed", err);
-            }
-        }
-        catch (Exception ex) {
-            //triggerAfterCompletion(processedRequest, response, mappedHandler, ex);
-        }
-        catch (Throwable err) {
-            //triggerAfterCompletion(processedRequest, response, mappedHandler,
-             //       new NestedServletException("Handler processing failed", err));
+            Object[] methodArgumentValues = getMethodArgumentValues(webRequest, handlerMethod);
+            System.out.println(methodArgumentValues);
+            return null;
         }
         finally {
-            if (asyncManager.isConcurrentHandlingStarted()) {
-                // Instead of postHandle and afterCompletion
-                if (mappedHandler != null) {
-                    applyAfterConcurrentHandlingStarted(mappedHandler,processedRequest, response);
-                }
-            }
-            else {
-                // Clean up any resources used by a multipart request.
-                if (multipartRequestParsed) {
-                    cleanupMultipart(processedRequest);
-                }
-            }
+            webRequest.requestCompleted();
         }
     }
+    private Object[] getMethodArgumentValues(@NotNull  ServletWebRequest request,HandlerMethod method, Object... providedArgs) throws Exception {
 
-    void downloadFileProcess(){
-
+        MethodParameter[] parameters = method.getMethodParameters();
+        Object[] args = new Object[parameters.length];
+        for (int i = 0; i < parameters.length; i++) {
+            MethodParameter parameter = parameters[i];
+            parameter.initParameterNameDiscovery(this.parameterNameDiscoverer);
+            args[i] = resolveProvidedArgument(parameter, providedArgs);
+            if (args[i] != null) {
+                continue;
+            }
+            if (this.argumentResolvers.supportsParameter(parameter)) {
+                try {
+                    args[i] = this.argumentResolvers.resolveArgument(
+                            parameter, null, request, null);
+                    continue;
+                }
+                catch (Exception ex) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Failed to resolve", ex);
+                    }
+                    throw ex;
+                }
+            }
+            if (args[i] == null) {
+                throw new IllegalStateException();
+            }
+        }
+        return args;
     }
+
+    @Nullable
+    private Object resolveProvidedArgument(MethodParameter parameter, @Nullable Object... providedArgs) {
+        if (providedArgs == null) {
+            return null;
+        }
+        for (Object providedArg : providedArgs) {
+            if (parameter.getParameterType().isInstance(providedArg)) {
+                return providedArg;
+            }
+        }
+        return null;
+    }
+
 
 
     /**
@@ -140,7 +110,7 @@ public class MsIOServlet extends DispatcherServlet {
      * @throws NoSuchFieldException
      * @throws IllegalAccessException
      */
-    <T> T getResponseBody(HttpServletResponse response,Class<T> clazz)  throws IOException, NoSuchFieldException, IllegalAccessException {
+    <T> T getResponseBody(HttpServletResponse response, Class<T> clazz)  throws IOException, NoSuchFieldException, IllegalAccessException {
         CoyoteOutputStream outputStream = (CoyoteOutputStream)response.getOutputStream();
         Field ob = CoyoteOutputStream.class.getDeclaredField("ob");
         ob.setAccessible(true);
@@ -151,8 +121,7 @@ public class MsIOServlet extends DispatcherServlet {
         byte[] array = byteBuffer.array();
         String s = new String(array, "UTF-8");
         s = s.substring(0,s.lastIndexOf("}")+1);
-        T t = CommonBean.OBJECT_MAPPER.readValue(s, clazz);
-        return t;
+        return CommonBean.OBJECT_MAPPER.readValue(s, clazz);
     }
 
     /**
@@ -160,7 +129,7 @@ public class MsIOServlet extends DispatcherServlet {
      * 使用剩下的url进行模拟请求数据处理
      * @param request
      */
-    private void changeRequestURI(ServletRequest request){
+    void changeRequestURI(ServletRequest request){
         RequestFacade requestFacade = (RequestFacade) request;
         Class clazz = RequestFacade.class;
         try{
@@ -184,9 +153,7 @@ public class MsIOServlet extends DispatcherServlet {
             //给值
             uriMB.setString(path);
             uriMBField.set(req1,uriMB);
-        }catch (NoSuchFieldException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
+        }catch (NoSuchFieldException | IllegalAccessException e) {
             e.printStackTrace();
         }
     }
@@ -196,7 +163,7 @@ public class MsIOServlet extends DispatcherServlet {
      * @param request
      * @return
      */
-    private  String getRequestUri(HttpServletRequest request) {
+    String getRequestUri(HttpServletRequest request) {
         String uri = (String)request.getAttribute("javax.servlet.include.request_uri");
         if (uri == null) {
             uri = request.getRequestURI();
@@ -227,7 +194,7 @@ public class MsIOServlet extends DispatcherServlet {
                 try {
                     interceptor.afterCompletion(request, response,chain.getHandler(), (Exception)null);
                 }catch (Throwable e){
-                    logger.error("HandlerInterceptor.afterCompletion threw exception", e);
+                    log.error("HandlerInterceptor.afterCompletion threw exception", e);
                 }
             }
         }
@@ -255,7 +222,7 @@ public class MsIOServlet extends DispatcherServlet {
                         asyncInterceptor.afterConcurrentHandlingStarted(request, response, chain.getHandler());
                     }
                     catch (Throwable ex) {
-                        logger.error("Interceptor [" + interceptors[i] + "] failed in afterConcurrentHandlingStarted", ex);
+                        log.error("Interceptor [" + interceptors[i] + "] failed in afterConcurrentHandlingStarted", ex);
                     }
                 }
             }

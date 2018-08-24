@@ -11,7 +11,7 @@ import java.util.Map;
 public class TestController {
 
     @RequestMapping("/t")
-    public Map test1(){
+    public Map test1(String title,String title2){
         return new HashMap(){
             {
                 put("name","李");

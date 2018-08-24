@@ -142,9 +142,10 @@ public class ExcelFactory {
         }
 
         /**
-         * 多页初始化
+         * 多页指定每页的id并初始化
          * @param idPool 每页的id池，会根据页码去索引，请根据顺序给定
          * @param file 文件流
+         * @param isChangeClass 是否自动去寻找类，若设置为false则会省略当前无映射的页
          */
         private SimpleExcelBean(@NotNull List<String> idPool,@NotNull InputStream file,boolean isChangeClass){
             this(file);
@@ -154,16 +155,22 @@ public class ExcelFactory {
             automaticPageTurningWithMapping();
         }
 
+        /**
+         * 多页不指定每页的id初始化
+         * @param file 文件流
+         * @param isChangeClass 若没有指定的class对象是否进行自动寻找
+         */
         private SimpleExcelBean(@NotNull InputStream file,@NotNull boolean isChangeClass){
             this(file);
             this.isTuring = true;
             this.isChangeClass = true;
+            automaticPageTurningWithoutMapping();
         }
 
         /**
          * 未指定反射对象迭代获取
          */
-        private void automaticPageTrueWithoutMapping(){
+        private void automaticPageTurningWithoutMapping(){
             for (int i = 0; i < getPageSize(); i++) {
                 try {
                     dataCache.put(i, this.getPageContent(i));
@@ -312,7 +319,7 @@ public class ExcelFactory {
                         methodIndex = methodAccess.getIndex(simpleName, String.class);
                     }catch (IllegalArgumentException e){
                         log.error("尝试使用" + simpleName + "获取方法失败，正在尝试使用全名获取");
-                        String flexName = "fromStringtoListBy" + information.getFieldType().getName().replaceAll(".", "");
+                        String flexName = "fromStringtoSetBy" + information.getFieldType().getName().replaceAll(".", "");
                         try {
                             methodIndex = methodAccess.getIndex(flexName, String.class);
                         }catch (IllegalArgumentException e1){
