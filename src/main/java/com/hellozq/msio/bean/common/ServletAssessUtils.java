@@ -11,11 +11,10 @@ import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ParameterNameDiscoverer;
 import org.springframework.lang.Nullable;
+import org.springframework.lang.NonNull;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.method.HandlerMethod;
-import org.springframework.web.method.support.HandlerMethodArgumentResolverComposite;
-import org.springframework.web.method.support.InvocableHandlerMethod;
 import org.springframework.web.servlet.AsyncHandlerInterceptor;
 import org.springframework.web.servlet.HandlerExecutionChain;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -24,10 +23,11 @@ import org.springframework.web.servlet.ModelAndView;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.validation.constraints.NotNull;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Map;
 
 /**
  * 辅助工具，用于修改并模拟操作
@@ -36,25 +36,47 @@ import java.nio.ByteBuffer;
  */
 final class ServletAssessUtils{
 
-    Log log = LogFactory.getLog(ServletAssessUtils.class);
+    private Log log = LogFactory.getLog(ServletAssessUtils.class);
 
     private ParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
 
-    private HandlerMethodArgumentResolverComposite argumentResolvers = new HandlerMethodArgumentResolverComposite();
-
-    <T> T getRequestResult(HttpServletRequest request, HttpServletResponse response,HandlerExecutionChain handle) throws Exception{
+    /**
+     * 获取请求响应应该返回的对象信息
+     * @param request 请求
+     * @param response 响应
+     * @param handle 请求上下文
+     * @param <T> 泛型，一般无用，预留字段
+     * @return 接口获取的数据
+     */
+    @SuppressWarnings("unchecked")
+    @Nullable
+    <T> T getRequestResult(HttpServletRequest request, HttpServletResponse response,HandlerExecutionChain handle){
         ServletWebRequest webRequest = new ServletWebRequest(request, response);
         HandlerMethod handlerMethod = (HandlerMethod) handle.getHandler();
         try {
             Object[] methodArgumentValues = getMethodArgumentValues(webRequest, handlerMethod);
-            System.out.println(methodArgumentValues);
+            System.out.println(Arrays.asList(methodArgumentValues));
+            Object invoke = handlerMethod.getMethod().invoke(handlerMethod.getBean(), methodArgumentValues);
+            return (T)invoke;
+        }catch (Exception e){
+            e.printStackTrace();
             return null;
         }
         finally {
             webRequest.requestCompleted();
         }
     }
-    private Object[] getMethodArgumentValues(@NotNull  ServletWebRequest request,HandlerMethod method, Object... providedArgs) throws Exception {
+
+    /**
+     * 获取方法的对应参数，获取原定参数相对应的数组
+     * @param request 请求
+     * @param method 切割出来该请求的方法
+     * @param providedArgs 预留参数
+     * @return 参数
+     * @throws Exception 错误
+     */
+    @NonNull
+    private Object[] getMethodArgumentValues(@NonNull ServletWebRequest request,@NonNull HandlerMethod method, Object... providedArgs) throws Exception {
 
         MethodParameter[] parameters = method.getMethodParameters();
         Object[] args = new Object[parameters.length];
@@ -65,28 +87,22 @@ final class ServletAssessUtils{
             if (args[i] != null) {
                 continue;
             }
-            if (this.argumentResolvers.supportsParameter(parameter)) {
-                try {
-                    args[i] = this.argumentResolvers.resolveArgument(
-                            parameter, null, request, null);
-                    continue;
+            Map<String, String[]> parameterMap = request.getRequest().getParameterMap();
+            if(parameterMap.containsKey(parameter.getParameterName())){
+                String[] values = parameterMap.get(parameter.getParameterName());
+                if(parameter.getParameterType().isArray()){
+                    args[i] = values;
                 }
-                catch (Exception ex) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Failed to resolve", ex);
-                    }
-                    throw ex;
+                if(null != values && values.length == 1) {
+                    args[i] = values[0];
                 }
-            }
-            if (args[i] == null) {
-                throw new IllegalStateException();
             }
         }
         return args;
     }
 
     @Nullable
-    private Object resolveProvidedArgument(MethodParameter parameter, @Nullable Object... providedArgs) {
+    private Object resolveProvidedArgument(@NonNull MethodParameter parameter, @Nullable Object... providedArgs) {
         if (providedArgs == null) {
             return null;
         }
@@ -106,10 +122,12 @@ final class ServletAssessUtils{
      * @param clazz 映射目标
      * @param <T> 泛型对象
      * @return 解析完之后的对象
-     * @throws IOException
-     * @throws NoSuchFieldException
-     * @throws IllegalAccessException
+     * @throws IOException 翻译时获取刘对象失败
+     * @throws NoSuchFieldException 找不到对应字段报错，一般由于版本更迭，response结构改变
+     * @throws IllegalAccessException 反射时候出错
      */
+    @Deprecated
+    @NonNull
     <T> T getResponseBody(HttpServletResponse response, Class<T> clazz)  throws IOException, NoSuchFieldException, IllegalAccessException {
         CoyoteOutputStream outputStream = (CoyoteOutputStream)response.getOutputStream();
         Field ob = CoyoteOutputStream.class.getDeclaredField("ob");
@@ -127,9 +145,9 @@ final class ServletAssessUtils{
     /**
      * 通过反射更改request的url，切除用于进入这个servlet的第一层url，
      * 使用剩下的url进行模拟请求数据处理
-     * @param request
+     * @param request 请求实体
      */
-    void changeRequestURI(ServletRequest request){
+    void changeRequestURI(@NonNull ServletRequest request){
         RequestFacade requestFacade = (RequestFacade) request;
         Class clazz = RequestFacade.class;
         try{
@@ -160,10 +178,11 @@ final class ServletAssessUtils{
 
     /**
      * 获取URI
-     * @param request
-     * @return
+     * @param request 请求实体
+     * @return 返回当前Uri
      */
-    String getRequestUri(HttpServletRequest request) {
+    @NonNull
+    String getRequestUri(@NonNull HttpServletRequest request) {
         String uri = (String)request.getAttribute("javax.servlet.include.request_uri");
         if (uri == null) {
             uri = request.getRequestURI();
@@ -175,10 +194,9 @@ final class ServletAssessUtils{
     boolean applyPreHandle(HandlerExecutionChain chain,HttpServletRequest request, HttpServletResponse response) throws Exception {
         HandlerInterceptor[] interceptors = chain.getInterceptors();
         if (!ObjectUtils.isEmpty(interceptors)) {
-            for(int i = 0; i < interceptors.length; i++) {
-                HandlerInterceptor interceptor = interceptors[i];
+            for (HandlerInterceptor interceptor : interceptors) {
                 if (!interceptor.preHandle(request, response, chain.getHandler())) {
-                    afterInterceptorHandle(chain,request,response);
+                    afterInterceptorHandle(chain, request, response);
                     return false;
                 }
             }
@@ -187,12 +205,12 @@ final class ServletAssessUtils{
         return true;
     }
 
-    void afterInterceptorHandle(HandlerExecutionChain chain,HttpServletRequest request,HttpServletResponse response){
+    private void afterInterceptorHandle(HandlerExecutionChain chain,HttpServletRequest request,HttpServletResponse response){
         HandlerInterceptor[] interceptors = chain.getInterceptors();
         if(!ObjectUtils.isEmpty(interceptors)){
             for (HandlerInterceptor interceptor : interceptors) {
                 try {
-                    interceptor.afterCompletion(request, response,chain.getHandler(), (Exception)null);
+                    interceptor.afterCompletion(request, response,chain.getHandler(), null);
                 }catch (Throwable e){
                     log.error("HandlerInterceptor.afterCompletion threw exception", e);
                 }
@@ -200,6 +218,14 @@ final class ServletAssessUtils{
         }
     }
 
+    /**
+     * 拦截器的收尾工作
+     * @param chain 当前访问上下文
+     * @param request 请求
+     * @param response 响应
+     * @param mv 映射静态资源
+     * @throws Exception 错误
+     */
     void applyPostHandle(HandlerExecutionChain chain,HttpServletRequest request, HttpServletResponse response, @Nullable ModelAndView mv)
             throws Exception {
 

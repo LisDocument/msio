@@ -1,39 +1,39 @@
 package com.hellozq.msio.bean.common;
 
-import com.hellozq.msio.bean.common.CommonBean;
-import org.apache.catalina.connector.CoyoteOutputStream;
-import org.apache.catalina.connector.OutputBuffer;
-import org.apache.catalina.connector.Request;
-import org.apache.catalina.connector.RequestFacade;
-import org.apache.tomcat.util.buf.MessageBytes;
-import org.springframework.lang.Nullable;
-import org.springframework.util.ObjectUtils;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.async.WebAsyncManager;
 import org.springframework.web.context.request.async.WebAsyncUtils;
-import org.springframework.web.method.HandlerMethod;
-import org.springframework.web.servlet.*;
-import org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod;
+import org.springframework.web.servlet.DispatcherServlet;
+import org.springframework.web.servlet.HandlerAdapter;
+import org.springframework.web.servlet.HandlerExecutionChain;
+import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.util.NestedServletException;
 
-import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.nio.ByteBuffer;
 
 /**
  * 文件转发接口
  * 控制文件转发，接管部分接口
  * @author bin
  */
-public class MsIOServlet extends DispatcherServlet {
+@SuppressWarnings("unused")
+public class MsIoServlet extends DispatcherServlet {
 
     /**
      * 定义辅助信息防止servlet名称导致的方法无法映射的问题
      */
-    private final String info = "javax.servlet.include.servlet_path";
+    private static final String INFO = "javax.servlet.include.servlet_path";
+
+    private static final String HTTP_GET = "get";
+
+    private static final String HTTP_POST = "post";
+
+    private static final String HTTP_PUT = "put";
+
+    private static final String HTTP_DELETE = "delete";
+
+    private static final String HTTP_HEAD = "head";
 
     private final ServletAssessUtils servletAssessUtils = new ServletAssessUtils();
 
@@ -43,12 +43,12 @@ public class MsIOServlet extends DispatcherServlet {
         //更改请求url
         servletAssessUtils.changeRequestURI(request);
         //添加一个request
-        processedRequest.setAttribute(info,servletAssessUtils.getRequestUri(request));
+        processedRequest.setAttribute(INFO,servletAssessUtils.getRequestUri(request));
         HandlerExecutionChain mappedHandler = null;
         boolean multipartRequestParsed = false;
         WebAsyncManager asyncManager = WebAsyncUtils.getAsyncManager(request);
         try {
-            ModelAndView mv = null;
+            ModelAndView mv;
             Exception dispatchException = null;
 
             try {
@@ -66,8 +66,8 @@ public class MsIOServlet extends DispatcherServlet {
                 String method = request.getMethod();
                 // Determine handler adapter for the current request.
                 HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler());
-                boolean isGet = "GET".equals(method);
-                if (isGet || "HEAD".equals(method)) {
+                boolean isGet = HTTP_GET.equals(method);
+                if (isGet || HTTP_HEAD.equals(method)) {
                     long lastModified = ha.getLastModified(request, mappedHandler.getHandler());
                     if (logger.isDebugEnabled()) {
                         logger.debug("Last-Modified value for [" + servletAssessUtils.getRequestUri(request) + "] is: " + lastModified);
@@ -76,16 +76,14 @@ public class MsIOServlet extends DispatcherServlet {
                         return;
                     }
                 }
-
+                //在获取函数体并进行处理前执行的拦截器的开始操作
                 if (!servletAssessUtils.applyPreHandle(mappedHandler, processedRequest, response)) {
                     return;
                 }
 
-                Object handler = mappedHandler.getHandler();
                 // Actually invoke the handler.
                 Object requestResult = servletAssessUtils.getRequestResult(request,response, mappedHandler);
                 mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
-                //getResponseBody(response);
                 if (asyncManager.isConcurrentHandlingStarted()) {
                     return;
                 }
@@ -96,6 +94,7 @@ public class MsIOServlet extends DispatcherServlet {
                         mv.setViewName(defaultViewName);
                     }
                 }
+                //在获取函数体并进行处理后执行的拦截器的结束操作
                 servletAssessUtils.applyPostHandle(mappedHandler,processedRequest, response, mv);
             }
             catch (Exception ex) {

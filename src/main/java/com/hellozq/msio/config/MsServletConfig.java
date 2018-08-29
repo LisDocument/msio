@@ -1,6 +1,6 @@
 package com.hellozq.msio.config;
 
-import com.hellozq.msio.bean.common.MsIOServlet;
+import com.hellozq.msio.bean.common.MsIoServlet;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,8 +21,8 @@ public class MsServletConfig {
     private String listenerUrl;
 
     @Bean
-    public MsIOServlet msIOServlet(){
-        return new MsIOServlet();
+    public MsIoServlet msIOServlet(){
+        return new MsIoServlet();
     }
 
 
