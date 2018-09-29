@@ -12,6 +12,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
+/**
+ * Spring提取信息类
+ * @author bin
+ */
 @Component
 @ConditionalOnWebApplication
 public class SpringUtils implements ApplicationContextAware,InitializingBean{
@@ -30,29 +34,42 @@ public class SpringUtils implements ApplicationContextAware,InitializingBean{
         if(SpringUtils.applicationContext == null){
             SpringUtils.applicationContext = applicationContext;
         }
-        log.info("----------------------------------------------------------------");
-
-        log.info("=========================信息注入成功=============================");
-
-        log.info("----------------------------------------------------------------");
     }
 
-    //获取applicationContext
+    /**
+     * 获取applicationContext
+     * @return applicationContext
+     */
     public static ApplicationContext getApplicationContext() {
         return applicationContext;
     }
 
-    //通过name获取 Bean.
+    /**
+     * 通过name获取 Bean.
+     * @param name 注册名
+     * @return Bean
+     */
     public static Object getBean(String name){
         return getApplicationContext().getBean(name);
     }
 
-    //通过class获取Bean.
+    /**
+     * 通过class对象获取注册Bean
+     * @param clazz class对象
+     * @param <T> 泛型
+     * @return Bean
+     */
     public static <T> T getBean(Class<T> clazz){
         return getApplicationContext().getBean(clazz);
     }
 
-    //通过name,以及Clazz返回指定的Bean
+    /**
+     * 通过name,以及Clazz返回指定的Bean
+     * @param name 指定名称
+     * @param clazz 指定泛型
+     * @param <T> 泛型
+     * @return 对象Bean
+     */
     public static <T> T getBean(String name,Class<T> clazz){
         return getApplicationContext().getBean(name, clazz);
     }

@@ -1,5 +1,7 @@
 package com.hellozq.msio.bean.others;
 
+import lombok.Data;
+import lombok.experimental.Accessors;
 import org.apache.commons.fileupload.FileItem;
 import org.springframework.util.StringUtils;
 
@@ -10,6 +12,8 @@ import java.util.regex.Pattern;
  * @author bin
  */
 @SuppressWarnings("unused")
+@Data
+@Accessors(chain = true)
 public class FileInterceptItem {
 
     /**
@@ -31,6 +35,11 @@ public class FileInterceptItem {
      * 文件能够接受的最小值
      */
     private Long fileMinSize;
+
+    /**
+     * 过滤链规则
+     */
+    private int orderNo = 0;
 
     /**
      * 如果基础属性不满足的情况下，用户可自定义的方法属性
@@ -81,51 +90,6 @@ public class FileInterceptItem {
             return fileInterceptCustomize.filter(file);
         }
         return true;
-    }
-
-    private String getRegexName() {
-        return regexName;
-    }
-
-    public FileInterceptItem setRegexName(String regexName) {
-        this.regexName = regexName;
-        return this;
-    }
-
-    private String getFileType() {
-        return fileType;
-    }
-
-    public FileInterceptItem setFileType(String fileType) {
-        this.fileType = fileType;
-        return this;
-    }
-
-    private Long getFileMaxSize() {
-        return fileMaxSize;
-    }
-
-    public FileInterceptItem setFileMaxSize(Long fileMaxSize) {
-        this.fileMaxSize = fileMaxSize;
-        return this;
-    }
-
-    private Long getFileMinSize() {
-        return fileMinSize;
-    }
-
-    public FileInterceptItem setFileMinSize(Long fileMinSize) {
-        this.fileMinSize = fileMinSize;
-        return this;
-    }
-
-    private FileInterceptCustomize<FileItem> getFileInterceptCustomize() {
-        return fileInterceptCustomize;
-    }
-
-    public FileInterceptItem setFileInterceptCustomize(FileInterceptCustomize<FileItem> fileInterceptCustomize) {
-        this.fileInterceptCustomize = fileInterceptCustomize;
-        return this;
     }
 
     @FunctionalInterface

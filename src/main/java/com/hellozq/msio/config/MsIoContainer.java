@@ -3,20 +3,15 @@ package com.hellozq.msio.config;
 import com.hellozq.msio.anno.*;
 import com.hellozq.msio.bean.common.CommonBean;
 import com.hellozq.msio.bean.common.Operator;
-import com.hellozq.msio.bean.common.TransFunctionContainer;
+import com.hellozq.msio.bean.common.ITransFunctionContainer;
 import com.hellozq.msio.utils.ClassUtils;
 import com.hellozq.msio.utils.StringRegexUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.system.ApplicationHome;
-import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -30,21 +25,16 @@ import java.util.stream.Collectors;
  * @author 内部映射生成方法
  * MsIo上下文全文容器，包含配置项缓冲项等
  */
-@ConditionalOnMissingBean(value = MsIoContainer.class)
-@Component
 @SuppressWarnings("unused")
+@Slf4j
 public class MsIoContainer {
 
     @Value("${spring.msIo.isHotCache:true}")
     private boolean hotDeploySign;
 
-    private Class<? extends TransFunctionContainer> containerClass;
+    private Class<? extends ITransFunctionContainer> containerClass;
 
-    private TransFunctionContainer transFunctionContainer;
-
-    private AbstractMsConfigure abstractMsConfigure;
-
-    private final Log log = LogFactory.getLog(MsIoContainer.class);
+    private ITransFunctionContainer iTransFunctionContainer;
 
     private final static String CLASS_LABEL = "className";
 
@@ -77,24 +67,21 @@ public class MsIoContainer {
 
     /**
      * 推荐方式
-     * @param transFunctionContainer 导出操作容器
      */
-    @Autowired
-    public MsIoContainer(TransFunctionContainer transFunctionContainer,AbstractMsConfigure abstractMsConfigure) {
-        this.transFunctionContainer = transFunctionContainer;
-        this.abstractMsConfigure = abstractMsConfigure;
-        containerClass = transFunctionContainer.getClass();
+    public MsIoContainer(ITransFunctionContainer iTransFunctionContainer) {
+        this.iTransFunctionContainer = iTransFunctionContainer;
+        containerClass = this.iTransFunctionContainer.getClass();
     }
 
     /**
-     * 初始化对文件进行读取以及类进行加载
+     * 初始化对文件进行读取以及类进行加载，
+     * 会被初始化方法进行调用
      */
-    @PostConstruct
-    public void init(){
+    void init(AbstractMsConfigure abstractMsConfigure){
         initJson();
         //类加载
         MsPackageScan scan = abstractMsConfigure.getClass().getAnnotation(MsPackageScan.class);
-        if(scan == null || StringUtils.isEmpty(scan)){
+        if(null == scan ||  scan.packageName().length == 0){
             return;
         }
         List<Class<?>> classes = new ArrayList<>();
@@ -229,7 +216,7 @@ public class MsIoContainer {
      * 配置文件的加载
      */
     private void initJson(){
-        String jsonMapper = null;
+        String jsonMapper;
         try {
             //获取文件外的配置文件
             ApplicationHome applicationHome = new ApplicationHome(getClass());
@@ -243,6 +230,7 @@ public class MsIoContainer {
             }
         } catch (IOException e) {
             e.printStackTrace();
+            return;
         } catch (NullPointerException e){
             log.error("map配置文件为空，或者文件内容为空，默认用户不需要配置操作，初始化配置文件操作跳过");
             return;
@@ -290,7 +278,7 @@ public class MsIoContainer {
                 try {
                     Method method = containerClass.getDeclaredMethod(annotation.methodName(), Object.class);
                     information.setMethod(method);
-                    information.setInvokeObject(transFunctionContainer);
+                    information.setInvokeObject(iTransFunctionContainer);
                 }catch (NoSuchMethodException e){
                     log.error("获取对应的方法失败，原因可能为：容器中未定义该方法；容器中方法参数未定义为Object；自定义容器未初始化：检查并修正");
                     throw e;
@@ -337,14 +325,14 @@ public class MsIoContainer {
                 //方法获取
                 int index = StringRegexUtils.checkIsContain(cnName, FUNCTION_SIGN);
                 if(index == -1){
-                    info.setName(cnName);
+                    info.setName(cnName.replace("\\$$","$$"));
                 }else{
                     info.setName(cnName.substring(0,index));
-                    info.setInvokeObject(transFunctionContainer);
-                    info.setMethod(containerClass.getDeclaredMethod(cnName.substring(index - 2),Object.class));
+                    info.setInvokeObject(iTransFunctionContainer);
+                    info.setMethod(containerClass.getDeclaredMethod(cnName.substring(index + 2),Object.class));
                 }
                 if(pojo != null){
-                    Field field = pojo.getField(egName.toString());
+                    Field field = pojo.getDeclaredField(egName.toString());
                     info.setFieldType(field.getType());
                 }
                 //若实在要使用className作为一个属性传入，进行转义即可

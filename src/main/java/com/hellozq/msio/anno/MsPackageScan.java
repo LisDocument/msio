@@ -7,9 +7,11 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * 扫描的包名，注解在创世类中
+ */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE})
-@SuppressWarnings("unused")
 public @interface MsPackageScan {
 
     @AliasFor("value")

@@ -14,7 +14,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD})
 @MsItem
-@SuppressWarnings("unused")
 public @interface MsAutomatic {
 
     @AliasFor(

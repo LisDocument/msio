@@ -1,10 +1,11 @@
 package com.hellozq.msio.config;
 
-import com.hellozq.msio.config.derivative.InterceptConstruction;
+import com.hellozq.msio.config.derivative.BaseInterceptConstruction;
 
 /**
  * @author bin
- * 全文配置类，按照需求配置数据
+ * 全文配置类，按照需求配置数据，创世类
+ * 模块是应用该方法创建
  */
 @SuppressWarnings("unused")
 public abstract class AbstractMsConfigure {
@@ -14,7 +15,7 @@ public abstract class AbstractMsConfigure {
      * @param intercept 拦截器实体
      * @return 返回
      */
-    public InterceptConstruction addInterceptors(InterceptConstruction intercept){
+    public BaseInterceptConstruction addInterceptors(BaseInterceptConstruction intercept){
         return intercept;
     }
 
@@ -24,7 +25,7 @@ public abstract class AbstractMsConfigure {
      * @param container 容器实体，会自动注入属性
      * @return 返回
      */
-    public MsIoContainer addClassCache(MsIoContainer container){
+    public MsIoContainer configContainer(MsIoContainer container) throws Exception{
         return container;
     }
 

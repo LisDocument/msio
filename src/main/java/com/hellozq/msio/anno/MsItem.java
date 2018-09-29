@@ -18,9 +18,21 @@ import java.lang.annotation.Target;
 @Target({ElementType.FIELD,ElementType.TYPE})
 public @interface MsItem {
 
+    /**
+     *
+     * @return 对应的中文名称映射
+     */
     String value() default "";
 
+    /**
+     *
+     * @return 方法名，后面描述的操作类中相应的方法名
+     */
     String methodName() default "";
 
+    /**
+     *
+     * @return 操作类，拾取方法的缓存方法池
+     */
     Class<? extends Operator> transFormOperator() default DefaultOperator.class;
 }

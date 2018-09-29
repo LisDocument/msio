@@ -1,6 +1,7 @@
 package com.hellozq.msio.utils;
 
-import org.jetbrains.annotations.NotNull;
+
+import lombok.NonNull;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -22,7 +23,7 @@ public class ThreadUtils {
                 , new LinkedBlockingQueue<>(50), new ThreadFactory() {
             AtomicInteger count = new AtomicInteger(0);
             @Override
-            public Thread newThread(@NotNull Runnable r) {
+            public Thread newThread(@NonNull Runnable r) {
                 return new Thread("异步处理工具单元-"+count.getAndAdd(1));
             }
         });
