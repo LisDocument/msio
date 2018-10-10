@@ -1,5 +1,6 @@
 package com.hellozq.msio.bean.common;
 
+import com.hellozq.msio.unit.ExcelFactory;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.async.WebAsyncManager;
 import org.springframework.web.context.request.async.WebAsyncUtils;
@@ -84,6 +85,7 @@ public class MsIoServlet extends DispatcherServlet {
                 // Actually invoke the handler.
                 Object requestResult = servletAssessUtils.getRequestResult(request,response, mappedHandler);
                 mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
+
                 if (asyncManager.isConcurrentHandlingStarted()) {
                     return;
                 }

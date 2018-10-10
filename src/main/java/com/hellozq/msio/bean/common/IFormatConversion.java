@@ -11,6 +11,7 @@ import java.util.Date;
 /**
  * @author bin
  * 格式转换方式，默认提供部分数据方式
+ * 导入时使用
  */
 @SuppressWarnings("unused")
 public interface IFormatConversion {

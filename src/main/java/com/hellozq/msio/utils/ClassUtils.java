@@ -24,7 +24,7 @@ public class ClassUtils {
      * 该工具类维护的映射方法缓存
      * 不对外展示只对工具类中的方法负责
      */
-    private static ConcurrentHashMap<String, MethodAccess> methodAccessCache = new ConcurrentHashMap<>();
+    private static ConcurrentHashMap<String, MethodAccess> methodAccessCache = new ConcurrentHashMap<>(128);
 
     /**
      * 私有获取MethodAccess的方法，

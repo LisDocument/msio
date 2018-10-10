@@ -15,7 +15,7 @@ import java.lang.annotation.Target;
  * 仅用于修饰被MsOperator修饰的类
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.FIELD,ElementType.TYPE})
+@Target({ElementType.FIELD})
 public @interface MsItem {
 
     /**
@@ -26,7 +26,7 @@ public @interface MsItem {
 
     /**
      *
-     * @return 方法名，后面描述的操作类中相应的方法名
+     * @return 方法名，后面描述的导出方法容器中相应的方法名
      */
     String methodName() default "";
 

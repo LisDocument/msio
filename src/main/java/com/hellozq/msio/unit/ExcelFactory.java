@@ -43,7 +43,7 @@ public class ExcelFactory {
     }
 
     /**
-     * 复数也的Excel解析结果
+     * 复数页的Excel解析结果
      * @param ids 单页id集合，会根据id索引每页，保证长度和页数一致，若不确定id，可设置isChangeClass为true，自动查询索引，若为false，且那个位置的元素为null，则跳过该数据
      * @param file 文件流
      * @param isChangeClass 是否自动加载映射
@@ -77,10 +77,10 @@ public class ExcelFactory {
     }
 
     /**
-     * 简单excel实例单元
+     * 简单excel实例单元-输入单元
      * 简单Excel：没有复杂的合并单元格选项，一比一对比
      */
-    private static final class SimpleExcelBean{
+    public static final class SimpleExcelBean{
         /**
          * 是否需要自动翻页
          */
@@ -372,10 +372,19 @@ public class ExcelFactory {
     }
 
     /**
+     * 简易excel实例单元-输出单元
+     */
+    public static final class SimpleExcelBeanReverse{
+
+        private Map<Integer,List> data;
+
+
+    }
+    /**
      * 复杂excel实例单元
      * 复杂Excel：格式复杂，有合并单元格选项，需要筛选
      */
-    private final class FlexExcelBean{
+    public final class FlexExcelBean{
 
     }
 
