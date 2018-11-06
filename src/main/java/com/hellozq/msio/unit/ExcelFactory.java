@@ -3,6 +3,7 @@ package com.hellozq.msio.unit;
 import com.esotericsoftware.reflectasm.MethodAccess;
 import com.hellozq.msio.bean.common.IFormatConversion;
 import com.hellozq.msio.config.MsIoContainer;
+import com.hellozq.msio.exception.DataUnCatchException;
 import com.hellozq.msio.exception.IndexOutOfSheetSizeException;
 import com.hellozq.msio.exception.UnsupportFormatException;
 import com.hellozq.msio.utils.ClassUtils;
@@ -74,6 +75,20 @@ public class ExcelFactory {
             }
         }
         return workbook;
+    }
+
+    /**
+     * @author bin
+     */
+    public enum ExcelDealType{
+        /**
+         * .xls
+         */
+        XLS,
+        /**
+         * .xlsx
+         */
+        XLSX
     }
 
     /**
@@ -372,13 +387,81 @@ public class ExcelFactory {
     }
 
     /**
+     * 获取导出集成类
+     * @param data 数据
+     * @param asycSign 集散多线程同步处理
+     * @param localCache 本地缓存使用SXXSF解析
+     * @param localCacheSize 本地缓存数量
+     * @param type 解析文件名
+     * @return 封装好的实体类
+     */
+    public static SimpleExcelBeanReverse getSimpleExcelBeanReverseInstance(Map<Integer,List> data,boolean asycSign,boolean localCache,long localCacheSize,ExcelDealType type){
+        return new SimpleExcelBeanReverse(data, asycSign, localCache, localCacheSize, type);
+    }
+
+    /**
      * 简易excel实例单元-输出单元
      */
     public static final class SimpleExcelBeanReverse{
 
+        /**
+         * 用户传入的数据，需要导出
+         */
         private Map<Integer,List> data;
+        /**
+         * 导出之后产生的workbook，用于写
+         */
+        private Workbook workbook;
+        /**
+         * 标记是否集散多线程同时处理
+         */
+        private boolean asycSign = false;
+        /**
+         * 是否开启本地缓存，本地缓存默认开启，仅对XLSX有效
+         */
+        private boolean localCache = true;
+        /**
+         * 开启本地缓存后，缓存的数量
+         */
+        private long localCacheSize = 500;
+        /**
+         * 文件导出后的格式
+         */
+        private ExcelDealType type = ExcelDealType.XLSX;
+        /**
+         * 获取到编译好的工作簿
+         * @return
+         */
+        public Workbook getWorkbook() {
+            return workbook;
+        }
 
+        private SimpleExcelBeanReverse(Map<Integer,List> data,boolean asycSign,boolean localCache,long localCacheSize,ExcelDealType type){
+            this.data = data;
+            this.asycSign = asycSign;
+            this.localCache = localCache;
+            this.localCacheSize = localCacheSize;
+            this.type = type;
+            translator();
+        }
 
+        /**
+         * 私有导出到workbook
+         */
+        private void translator(){
+            if(data == null || data.isEmpty()){
+                throw new DataUnCatchException("未找到应有的数据集,若要制造模板，请传入一个空对象");
+            }
+            //如果标记为导出为XLS格式的，检查65536是否达到，达到默认翻页
+            if(ExcelDealType.XLS.equals(type)){
+                this.workbook = new HSSFWorkbook();
+            }else{
+                if()
+            }
+            data.forEach((k,v) -> {
+
+            });
+        }
     }
     /**
      * 复杂excel实例单元
