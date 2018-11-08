@@ -7,7 +7,23 @@ package com.hellozq.msio.exception;
  */
 public class DataUnCatchException extends IllegalArgumentException {
 
+
+    private Exception e;
+
+    public DataUnCatchException(String tip,Exception e){
+        super(tip);
+        this.e = e;
+    }
+
     public DataUnCatchException(String tip){
         super(tip);
+    }
+
+    @Override
+    public void printStackTrace() {
+        super.printStackTrace();
+        if(e != null) {
+            e.printStackTrace();
+        }
     }
 }

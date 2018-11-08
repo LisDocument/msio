@@ -8,6 +8,7 @@ import com.hellozq.msio.config.MsIoContainer;
 import com.hellozq.msio.exception.DataUnCatchException;
 import com.hellozq.msio.exception.IndexOutOfSheetSizeException;
 import com.hellozq.msio.exception.UnsupportFormatException;
+import com.hellozq.msio.unit.func.OutExceptionHandler;
 import com.hellozq.msio.utils.ClassUtils;
 import com.hellozq.msio.utils.MsUtils;
 import com.hellozq.msio.utils.SpringUtils;
@@ -400,8 +401,10 @@ public class ExcelFactory {
      * @param type 解析文件名
      * @return 封装好的实体类
      */
-    public static SimpleExcelBeanReverse getSimpleExcelBeanReverseInstance(Map<Integer,List> data,boolean asycSign,boolean localCache,long localCacheSize,ExcelDealType type){
-        return new SimpleExcelBeanReverse(data, asycSign, localCache, localCacheSize, type);
+    public static SimpleExcelBeanReverse getSimpleExcelBeanReverseInstance(Map<Integer,List> data,boolean asycSign,
+                                                                           boolean localCache,long localCacheSize,
+                                                                           ExcelDealType type,OutExceptionHandler handler){
+        return new SimpleExcelBeanReverse(data, asycSign, localCache, localCacheSize, type,handler);
     }
 
     /**
@@ -425,6 +428,8 @@ public class ExcelFactory {
          * 是否开启本地缓存，本地缓存默认开启，仅对XLSX有效
          */
         private boolean localCache = true;
+
+        private OutExceptionHandler handler = null;
         /**
          * 开启本地缓存后，缓存的数量
          */
@@ -455,12 +460,15 @@ public class ExcelFactory {
             return workbook;
         }
 
-        private SimpleExcelBeanReverse(Map<Integer,List> data,boolean asycSign,boolean localCache,long localCacheSize,ExcelDealType type){
+        private SimpleExcelBeanReverse(Map<Integer,List> data,boolean asycSign,boolean localCache
+                ,long localCacheSize,ExcelDealType type,OutExceptionHandler handler){
             this.data = data;
             this.asycSign = asycSign;
             this.localCache = localCache;
             this.localCacheSize = localCacheSize;
             this.type = type;
+            this.handler = handler;
+            this.msIoContainer = SpringUtils.getBean(MsIoContainer.class);
             translator();
         }
 
@@ -491,7 +499,8 @@ public class ExcelFactory {
          * @param data 数据列
          * @param sheet 输出列
          */
-        private void writeToSheet(List data,Sheet sheet,int pageIndex){
+        @SuppressWarnings("unchecked")
+        private void writeToSheet(List data,Sheet sheet,int pageIndex) throws DataUnCatchException{
             if(data.isEmpty()) {
                 return;
             }
@@ -509,20 +518,40 @@ public class ExcelFactory {
                     cell.setCellValue(v.getName());
                     keySet.add(k);
                 });
-                data.forEach(map -> {
+                DataUnCatchException error = null;
+                //标记外层循环
+                out:
+                for (Object map : data) {
                     Row rowTemp = sheet.createRow(sheet.getLastRowNum() + 1);
-                    keySet.forEach(keyTemp -> {
+                    for (String keyTemp : keySet) {
                         Object dataItem = ((Map) map).get(keyTemp);
                         MsIoContainer.Information action = mapping.get(keyTemp);
                         Object invoke = null;
                         Cell cellTemp = rowTemp.createCell(rowTemp.getLastCellNum() + 1);
                         try {
                             invoke = action.getMethod().invoke(action.getInvokeObject(), dataItem);
-                        }catch (IllegalAccessException | InvocationTargetException e){
-                            log.error("第" + pageIndex + "页，第" + rowTemp.getRowNum() + "行，第" + cellTemp.getColumnIndex() + "列数据无法转换",e);
+                        }catch (IllegalAccessException | InvocationTargetException e) {
+                            log.error("第" + pageIndex + "页，第" + rowTemp.getRowNum() + "行，第" + cellTemp.getColumnIndex() +
+                                    "列数据无法转换", e);
+                            //未找到错误处理程序，跳出循环并抛出异常，结束方法
+                            if (handler == null) {
+                                error = new DataUnCatchException("第" + pageIndex + "页，第" + rowTemp.getRowNum() + "行，第" + cellTemp.getColumnIndex() +
+                                        "列数据无法转换",e);
+                                break out;
+                            }
+                            //执行错误处理程序
+                            invoke = handler.handle(e,dataItem);
                         }
-                    });
-                });
+                        //解析完数据进入表中
+                        cellTemp.setCellValue(String.valueOf(invoke));
+                    }
+                }
+                if(error != null){
+                    throw error;
+                }
+            }else{
+                LinkedHashMap<String, MsIoContainer.Information> mapping = msIoContainer.get(data.get(0).getClass());
+
             }
         }
     }
