@@ -105,7 +105,7 @@ public class MsIoContainer {
      * @return 返回映射
      */
     @SuppressWarnings("all")
-    public String match(List<String> titles){
+    public String match(Collection<String> titles){
         Map<String, LinkedHashMap<String,Information>> allRewords = new HashMap<>(16);
         if(hotDeploySign){
             initJson();
@@ -280,7 +280,7 @@ public class MsIoContainer {
                     information.setMethod(method);
                     information.setInvokeObject(iTransFunctionContainer);
                 }catch (NoSuchMethodException e){
-                    log.error("获取对应的方法失败，原因可能为：容器中未定义该方法；容器中方法参数未定义为Object；自定义容器未初始化：检查并修正");
+                    log.error("获取对应的方法失败，原因可能为：容器中未定义该方法；容器中方法参数未定义为Object；自定义容器未初始化：检查并修正",e);
                     throw e;
                 }
                 //没有,自动调用默认的类型转换方法

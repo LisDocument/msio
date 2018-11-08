@@ -1,6 +1,8 @@
 package com.hellozq.msio.unit;
 
 import com.esotericsoftware.reflectasm.MethodAccess;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.hellozq.msio.bean.common.IFormatConversion;
 import com.hellozq.msio.config.MsIoContainer;
 import com.hellozq.msio.exception.DataUnCatchException;
@@ -12,15 +14,18 @@ import com.hellozq.msio.utils.SpringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.util.StringUtils;
 
 import javax.validation.constraints.NotNull;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 /**
@@ -425,9 +430,23 @@ public class ExcelFactory {
          */
         private long localCacheSize = 500;
         /**
+         * 页码，存储当前页码指针位置
+         */
+        private int pageIndex = 0;
+        /**
+         * 每页数据最大承受值，如果达到了会自动进行翻页
+         */
+        private int pageSize = 65536;
+        /**
+         * 缓存的页码索引对象
+         */
+        private Map<Integer,String> mapKey = Maps.newHashMapWithExpectedSize(64);
+        /**
          * 文件导出后的格式
          */
         private ExcelDealType type = ExcelDealType.XLSX;
+
+        private MsIoContainer msIoContainer;
         /**
          * 获取到编译好的工作簿
          * @return
@@ -456,11 +475,55 @@ public class ExcelFactory {
             if(ExcelDealType.XLS.equals(type)){
                 this.workbook = new HSSFWorkbook();
             }else{
-                if()
+                this.workbook = new SXSSFWorkbook(500);
             }
             data.forEach((k,v) -> {
+                if(v.size() > pageSize){
+                    //大于最大容纳量，执行分页
 
+                }
+                pageIndex ++;
             });
+        }
+
+        /**
+         * 实际写操作
+         * @param data 数据列
+         * @param sheet 输出列
+         */
+        private void writeToSheet(List data,Sheet sheet,int pageIndex){
+            if(data.isEmpty()) {
+                return;
+            }
+            Object typeStandard = data.get(0);
+            //map类型读取
+            if(typeStandard instanceof Map){
+                String key = msIoContainer.match(((Map) typeStandard).keySet());
+                mapKey.put(pageIndex,key);
+                LinkedHashMap<String, MsIoContainer.Information> mapping = msIoContainer.get(key);
+                Row row = sheet.createRow(0);
+                //命名字段，作为key顺序取值并插入
+                List<String> keySet = Lists.newArrayList();
+                mapping.forEach((k,v) -> {
+                    Cell cell = row.createCell(row.getLastCellNum() + 1);
+                    cell.setCellValue(v.getName());
+                    keySet.add(k);
+                });
+                data.forEach(map -> {
+                    Row rowTemp = sheet.createRow(sheet.getLastRowNum() + 1);
+                    keySet.forEach(keyTemp -> {
+                        Object dataItem = ((Map) map).get(keyTemp);
+                        MsIoContainer.Information action = mapping.get(keyTemp);
+                        Object invoke = null;
+                        Cell cellTemp = rowTemp.createCell(rowTemp.getLastCellNum() + 1);
+                        try {
+                            invoke = action.getMethod().invoke(action.getInvokeObject(), dataItem);
+                        }catch (IllegalAccessException | InvocationTargetException e){
+                            log.error("第" + pageIndex + "页，第" + rowTemp.getRowNum() + "行，第" + cellTemp.getColumnIndex() + "列数据无法转换",e);
+                        }
+                    });
+                });
+            }
         }
     }
     /**
