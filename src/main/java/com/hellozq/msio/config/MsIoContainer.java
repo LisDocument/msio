@@ -1,5 +1,6 @@
 package com.hellozq.msio.config;
 
+import com.google.common.collect.Lists;
 import com.hellozq.msio.anno.*;
 import com.hellozq.msio.bean.common.CommonBean;
 import com.hellozq.msio.bean.common.Operator;
@@ -105,7 +106,7 @@ public class MsIoContainer {
      * @return 返回映射
      */
     @SuppressWarnings("all")
-    public String match(Collection<String> titles){
+    public String match(Collection<String> titles,boolean isEg){
         Map<String, LinkedHashMap<String,Information>> allRewords = new HashMap<>(16);
         if(hotDeploySign){
             initJson();
@@ -117,7 +118,13 @@ public class MsIoContainer {
         List<String> keys = new ArrayList<>();
         for (String key : allRewords.keySet()) {
             LinkedHashMap<String, Information> value = allRewords.get(key);
-            List<String> datum = value.values().stream().map(Information::getName).collect(Collectors.toList());
+            List<String> datum = null;
+            //获取比较项
+            if(!isEg) {
+                datum = value.values().stream().map(Information::getName).collect(Collectors.toList());
+            }else{
+                datum = Lists.newArrayList(value.keySet());
+            }
             long count = titles.parallelStream().filter(datum::contains).count();
             if(count != titles.size()){
                 continue;
@@ -127,13 +134,13 @@ public class MsIoContainer {
         if(keys.size() == 1){
             return keys.get(0);
         }else if(keys.size() > 1){
+            //如果匹配的数据大于
             Set<String> classKeys = classCache.keySet();
             return keys.stream().sorted((k1,k2) -> (classKeys.contains(k1) ? 1 : -1)).limit(1).collect(Collectors.toList()).get(0);
         }else{
             return null;
         }
     }
-
     /**
      * 根据key获取其缓存的的类型，如果未找到，返回Map
      * @param key 索引值

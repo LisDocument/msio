@@ -96,17 +96,17 @@ public class MsIoServlet extends DispatcherServlet {
                 }
 
                 mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
-//
-//                if (asyncManager.isConcurrentHandlingStarted()) {
-//                    return;
-//                }
-//
-//                if(mv != null && !mv.hasView()){
-//                    String defaultViewName = getDefaultViewName(request);
-//                    if (defaultViewName != null) {
-//                        mv.setViewName(defaultViewName);
-//                    }
-//                }
+
+                if (asyncManager.isConcurrentHandlingStarted()) {
+                    return;
+                }
+
+                if(mv != null && !mv.hasView()){
+                    String defaultViewName = getDefaultViewName(request);
+                    if (defaultViewName != null) {
+                        mv.setViewName(defaultViewName);
+                    }
+                }
                 //在获取函数体并进行处理后执行的拦截器的结束操作
                 servletAssessUtils.applyPostHandle(mappedHandler,processedRequest, response, mv);
             }
