@@ -1,9 +1,11 @@
 package com.hellozq.msio.test;
 
+import com.google.common.collect.Lists;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -20,8 +22,14 @@ public class TestController {
         };
     }
 
-//    @RequestMapping("u/t")
-//    public String test2(){
-//        return "xxx2";
-//    }
+
+    @RequestMapping("/t2")
+    public List test2(){
+        return Lists.newArrayList(new HashMap(){
+            {
+                put("name","李");
+                put("age","18");
+            }
+        });
+    }
 }

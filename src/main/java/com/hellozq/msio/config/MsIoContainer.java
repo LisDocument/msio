@@ -100,7 +100,7 @@ public class MsIoContainer {
     }
 
     /**
-     * 遍历匹配获取映射,仅允许数据
+     * 遍历匹配获取映射,仅允许数据(中文数据匹配)
      * @param titles 需要被匹配的头
      * @return 返回映射
      */

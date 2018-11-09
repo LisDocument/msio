@@ -28,6 +28,7 @@ public class MsConfigure extends AbstractMsConfigure {
     @Override
     public MsIoContainer configContainer(MsIoContainer container) throws Exception {
         container.addMapping(ForwardingRecode.class);
+        container.addMapping(User.class);
         return super.configContainer(container);
     }
 }

@@ -30,6 +30,7 @@ import javax.validation.constraints.NotNull;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author bin
@@ -394,6 +395,7 @@ public class ExcelFactory {
         }
     }
 
+    private static ConcurrentHashMap<String,SimpleExcelBeanReverse> beanCache = new ConcurrentHashMap<>();
     /**
      * 获取导出集成类
      * @param data 数据
@@ -401,12 +403,34 @@ public class ExcelFactory {
      * @param localCache 本地缓存使用SXXSF解析
      * @param localCacheSize 本地缓存数量
      * @param type 解析文件名
-     * @return 封装好的实体类
+     * @param handler 错误处理方法
+     * @return 封装好的处理
      */
     public static SimpleExcelBeanReverse getSimpleExcelBeanReverseInstance(Map<Integer,List> data,boolean asycSign,
-                                                                           boolean localCache,long localCacheSize,
-                                                                           ExcelDealType type,OutExceptionHandler handler){
-        return new SimpleExcelBeanReverse(data, asycSign, localCache, localCacheSize, type,handler);
+                                                                           boolean localCache,int localCacheSize, ExcelDealType type,
+                                                                           OutExceptionHandler handler,int pageSize){
+        SimpleExcelBeanReverse bean = new SimpleExcelBeanReverse(data, asycSign, localCache, localCacheSize, type, handler, pageSize);
+        return bean;
+    }
+
+    /**
+     * 获取导出集成类
+     * @param data 数据
+     * @param handler 错误处理方法
+     * @return 封装好的处理类
+     */
+    public static SimpleExcelBeanReverse getSimpleExcelBeanReverseInstance(Map<Integer,List> data,OutExceptionHandler handler){
+        return new SimpleExcelBeanReverse(data,handler);
+    }
+
+    /**
+     * 获取导出集成类
+     * @param data 数据(单页)
+     * @param handler 错误处理方法
+     * @return 封装好的处理类
+     */
+    public static SimpleExcelBeanReverse getSimpleExcelBeanReverseInstance(List data,OutExceptionHandler handler){
+        return new SimpleExcelBeanReverse(ImmutableMap.of(1,data),handler);
     }
 
     /**
@@ -425,17 +449,17 @@ public class ExcelFactory {
         /**
          * 标记是否集散多线程同时处理
          */
-        private boolean asycSign = false;
+        private boolean asycSign;
         /**
          * 是否开启本地缓存，本地缓存默认开启，仅对XLSX有效
          */
-        private boolean localCache = true;
+        private boolean localCache;
 
         private OutExceptionHandler handler = null;
         /**
          * 开启本地缓存后，缓存的数量
          */
-        private long localCacheSize = 500;
+        private int localCacheSize;
         /**
          * 页码，存储当前页码指针位置
          */
@@ -443,7 +467,7 @@ public class ExcelFactory {
         /**
          * 每页数据最大承受值，如果达到了会自动进行翻页
          */
-        private int pageSize = 65536;
+        private int pageSize;
         /**
          * 缓存的页码索引对象
          */
@@ -451,7 +475,7 @@ public class ExcelFactory {
         /**
          * 文件导出后的格式
          */
-        private ExcelDealType type = ExcelDealType.XLSX;
+        private ExcelDealType type;
 
         private MsIoContainer msIoContainer;
         /**
@@ -462,8 +486,12 @@ public class ExcelFactory {
             return workbook;
         }
 
+        public void setData(Map<Integer, List> data){
+            this.data = data;
+        }
+
         private SimpleExcelBeanReverse(Map<Integer,List> data,boolean asycSign,boolean localCache
-                ,long localCacheSize,ExcelDealType type,OutExceptionHandler handler){
+                ,int localCacheSize,ExcelDealType type,OutExceptionHandler handler,int pageSize){
             this.data = data;
             this.asycSign = asycSign;
             this.localCache = localCache;
@@ -471,7 +499,12 @@ public class ExcelFactory {
             this.type = type;
             this.handler = handler;
             this.msIoContainer = SpringUtils.getBean(MsIoContainer.class);
+            this.pageSize = pageSize;
             translator();
+        }
+
+        private SimpleExcelBeanReverse(Map<Integer,List> data,OutExceptionHandler handler){
+            this(data,false,true,500,ExcelDealType.XLSX,handler,65536);
         }
 
         /**
@@ -485,7 +518,7 @@ public class ExcelFactory {
             if(ExcelDealType.XLS.equals(type)){
                 this.workbook = new HSSFWorkbook();
             }else{
-                this.workbook = new SXSSFWorkbook(500);
+                this.workbook = new SXSSFWorkbook(localCacheSize);
             }
             TreeSet<Integer> sortKey = Sets.newTreeSet(data.keySet());
             for (Integer pageNo : sortKey) {

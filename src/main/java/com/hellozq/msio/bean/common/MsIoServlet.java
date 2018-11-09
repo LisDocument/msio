@@ -12,6 +12,7 @@ import org.springframework.web.util.NestedServletException;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.List;
 
 /**
  * 文件转发接口
@@ -83,19 +84,29 @@ public class MsIoServlet extends DispatcherServlet {
                 }
 
                 // Actually invoke the handler.
+                // transport to excel
                 Object requestResult = servletAssessUtils.getRequestResult(request,response, mappedHandler);
+
+                if(requestResult instanceof List){
+                    response.setContentType("application/vnd.ms-excel;charset=utf-8");
+                    response.setCharacterEncoding("utf-8");
+                    response.setHeader("Content-disposition", "attachment;filename=download.xlsx");
+                    ExcelFactory.SimpleExcelBeanReverse ins = ExcelFactory.getSimpleExcelBeanReverseInstance((List)requestResult, (e, item) -> item);
+                    ins.getWorkbook().write(response.getOutputStream());
+                }
+
                 mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
-
-                if (asyncManager.isConcurrentHandlingStarted()) {
-                    return;
-                }
-
-                if(mv != null && !mv.hasView()){
-                    String defaultViewName = getDefaultViewName(request);
-                    if (defaultViewName != null) {
-                        mv.setViewName(defaultViewName);
-                    }
-                }
+//
+//                if (asyncManager.isConcurrentHandlingStarted()) {
+//                    return;
+//                }
+//
+//                if(mv != null && !mv.hasView()){
+//                    String defaultViewName = getDefaultViewName(request);
+//                    if (defaultViewName != null) {
+//                        mv.setViewName(defaultViewName);
+//                    }
+//                }
                 //在获取函数体并进行处理后执行的拦截器的结束操作
                 servletAssessUtils.applyPostHandle(mappedHandler,processedRequest, response, mv);
             }
