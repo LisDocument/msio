@@ -15,7 +15,7 @@ import java.lang.annotation.Target;
  * 仅用于修饰被MsOperator修饰的类
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.FIELD})
+@Target({ElementType.FIELD,ElementType.ANNOTATION_TYPE})
 public @interface MsItem {
 
     /**

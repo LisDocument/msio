@@ -1,8 +1,10 @@
 package com.hellozq.msio.unit;
 
 import com.esotericsoftware.reflectasm.MethodAccess;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.hellozq.msio.bean.common.IFormatConversion;
 import com.hellozq.msio.config.MsIoContainer;
 import com.hellozq.msio.exception.DataUnCatchException;
@@ -475,7 +477,7 @@ public class ExcelFactory {
         /**
          * 私有导出到workbook
          */
-        private void translator(){
+        private void translator() throws DataUnCatchException{
             if(data == null || data.isEmpty()){
                 throw new DataUnCatchException("未找到应有的数据集,若要制造模板，请传入一个空对象");
             }
@@ -485,40 +487,48 @@ public class ExcelFactory {
             }else{
                 this.workbook = new SXSSFWorkbook(500);
             }
-            data.forEach((k,v) -> {
-                if(v.size() > pageSize){
-                    //大于最大容纳量，执行分页
-
+            TreeSet<Integer> sortKey = Sets.newTreeSet(data.keySet());
+            for (Integer pageNo : sortKey) {
+                List list = data.get(pageNo);
+                int ceil = (int)Math.ceil(list.size() * 1.0 / pageSize);
+                //自动翻页操作，pageNo作为缓存的映射key传入
+                if(1 == ceil){
+                    writeToSheet(list,workbook.createSheet(),1);
+                    continue;
                 }
-                pageIndex ++;
-            });
+                for (int i = 0; i < ceil; i++) {
+                    writeToSheet(list,workbook.createSheet(),ceil);
+                }
+            }
         }
 
         /**
-         * 实际写操作
+         * 实际写操作，自动执行分页操作
          * @param data 数据列
          * @param sheet 输出列
+         * @param pageNo 缓存映射提取列
          */
         @SuppressWarnings("unchecked")
-        private void writeToSheet(List data,Sheet sheet,int pageIndex) throws DataUnCatchException{
+        private void writeToSheet(List data,Sheet sheet,int pageNo) throws DataUnCatchException{
             if(data.isEmpty()) {
                 return;
             }
             Object typeStandard = data.get(0);
             //map类型读取
+            Row titleRow = sheet.createRow(0);
+            //全局错误
+            DataUnCatchException error = null;
             if(typeStandard instanceof Map){
                 String key = msIoContainer.match(((Map) typeStandard).keySet());
-                mapKey.put(pageIndex,key);
+                mapKey.put(pageNo,key);
                 LinkedHashMap<String, MsIoContainer.Information> mapping = msIoContainer.get(key);
-                Row row = sheet.createRow(0);
                 //命名字段，作为key顺序取值并插入
                 List<String> keySet = Lists.newArrayList();
                 mapping.forEach((k,v) -> {
-                    Cell cell = row.createCell(row.getLastCellNum() + 1);
+                    Cell cell = titleRow.createCell(titleRow.getLastCellNum() + 1);
                     cell.setCellValue(v.getName());
                     keySet.add(k);
                 });
-                DataUnCatchException error = null;
                 //标记外层循环
                 out:
                 for (Object map : data) {
@@ -531,14 +541,14 @@ public class ExcelFactory {
                         try {
                             invoke = action.getMethod().invoke(action.getInvokeObject(), dataItem);
                         }catch (IllegalAccessException | InvocationTargetException e) {
-                            log.error("第" + pageIndex + "页，第" + rowTemp.getRowNum() + "行，第" + cellTemp.getColumnIndex() +
-                                    "列数据无法转换", e);
                             //未找到错误处理程序，跳出循环并抛出异常，结束方法
                             if (handler == null) {
-                                error = new DataUnCatchException("第" + pageIndex + "页，第" + rowTemp.getRowNum() + "行，第" + cellTemp.getColumnIndex() +
-                                        "列数据无法转换",e);
+                                error = new DataUnCatchException("第" + pageNo + "页，第" + rowTemp.getRowNum() + "行，第" + cellTemp.getColumnIndex() +
+                                        "列Map数据无法转换",e);
                                 break out;
                             }
+                            log.error("第" + pageNo + "页，第" + rowTemp.getRowNum() + "行，第" + cellTemp.getColumnIndex() +
+                                    "列数据无法转换", e);
                             //执行错误处理程序
                             invoke = handler.handle(e,dataItem);
                         }
@@ -550,9 +560,44 @@ public class ExcelFactory {
                     throw error;
                 }
             }else{
-                LinkedHashMap<String, MsIoContainer.Information> mapping = msIoContainer.get(data.get(0).getClass());
-
+                Class<?> clazz = data.get(0).getClass();
+                LinkedHashMap<String, MsIoContainer.Information> mapping = msIoContainer.get(clazz);
+                //excel列表顺序,且对标题行赋值
+                List<String> keySet = Lists.newArrayList();
+                mapping.forEach((k,v) -> {
+                    keySet.add(k);
+                    titleRow.createCell(titleRow.getLastCellNum() + 1).setCellValue(v.getName());
+                });
+                out:
+                for (Object obj : data) {
+                    Row dataRow = sheet.createRow(sheet.getLastRowNum() + 1);
+                    for (String keyTemp : keySet) {
+                        Object value = ClassUtils.getFieldValue(keyTemp, obj, clazz);
+                        MsIoContainer.Information action = mapping.get(keyTemp);
+                        Cell cellTemp = dataRow.createCell(dataRow.getLastCellNum() + 1);
+                        Object invoke = null;
+                        try {
+                            invoke = action.getMethod().invoke(action.getInvokeObject(), value);
+                        }catch (IllegalAccessException | InvocationTargetException e){
+                            //未找到错误处理程序，跳出循环并抛出异常，结束方法
+                            if (handler == null) {
+                                error = new DataUnCatchException("第" + pageNo + "页，第" + dataRow.getRowNum() + "行，第" + cellTemp.getColumnIndex() +
+                                        "列数据无法转换",e);
+                                break out;
+                            }
+                            log.error("第" + pageNo + "页，第" + dataRow.getRowNum() + "行，第" + cellTemp.getColumnIndex() +
+                                    "列类数据无法转换", e);
+                            //执行错误处理程序
+                            invoke = handler.handle(e,value);
+                        }
+                        cellTemp.setCellValue(String.valueOf(invoke));
+                    }
+                }
+                if(error != null){
+                    throw error;
+                }
             }
+            pageSize ++;
         }
     }
     /**
