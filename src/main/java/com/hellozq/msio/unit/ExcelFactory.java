@@ -454,7 +454,9 @@ public class ExcelFactory {
          * 是否开启本地缓存，本地缓存默认开启，仅对XLSX有效
          */
         private boolean localCache;
-
+        /**
+         * 用于处理中途错误的问题
+         */
         private OutExceptionHandler handler = null;
         /**
          * 开启本地缓存后，缓存的数量
