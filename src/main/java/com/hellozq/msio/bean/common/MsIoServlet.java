@@ -1,9 +1,12 @@
 package com.hellozq.msio.bean.common;
 
+import com.hellozq.msio.anno.MsReturnTranslator;
 import com.hellozq.msio.unit.ExcelFactory;
+import com.hellozq.msio.utils.MsELUtils;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.async.WebAsyncManager;
 import org.springframework.web.context.request.async.WebAsyncUtils;
+import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.DispatcherServlet;
 import org.springframework.web.servlet.HandlerAdapter;
 import org.springframework.web.servlet.HandlerExecutionChain;
@@ -12,6 +15,7 @@ import org.springframework.web.util.NestedServletException;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.lang.reflect.Method;
 import java.util.List;
 
 /**
@@ -50,7 +54,7 @@ public class MsIoServlet extends DispatcherServlet {
         boolean multipartRequestParsed = false;
         WebAsyncManager asyncManager = WebAsyncUtils.getAsyncManager(request);
         try {
-            ModelAndView mv;
+            ModelAndView mv = null;
             Exception dispatchException = null;
 
             try {
@@ -63,7 +67,6 @@ public class MsIoServlet extends DispatcherServlet {
                     noHandlerFound(processedRequest, response);
                     return;
                 }
-                mappedHandler.getHandler();
                 // Process last-modified header, if supported by the handler.
                 String method = request.getMethod();
                 // Determine handler adapter for the current request.
@@ -85,17 +88,22 @@ public class MsIoServlet extends DispatcherServlet {
 
                 // Actually invoke the handler.
                 // transport to excel
+                Method method1 = ((HandlerMethod) mappedHandler.getHandler()).getMethod();
+                MsReturnTranslator annotation = method1.getDeclaredAnnotation(MsReturnTranslator.class);
                 Object requestResult = servletAssessUtils.getRequestResult(request,response, mappedHandler);
 
+                if(annotation != null){
+                    requestResult = MsELUtils.getValueByEL(requestResult,annotation.value());
+                }
                 if(requestResult instanceof List){
                     response.setContentType("application/vnd.ms-excel;charset=utf-8");
                     response.setCharacterEncoding("utf-8");
                     response.setHeader("Content-disposition", "attachment;filename=download.xlsx");
                     ExcelFactory.SimpleExcelBeanReverse ins = ExcelFactory.getSimpleExcelBeanReverseInstance((List)requestResult, (e, item) -> item);
                     ins.getWorkbook().write(response.getOutputStream());
+                }else {
+                    mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
                 }
-
-                mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
 
                 if (asyncManager.isConcurrentHandlingStarted()) {
                     return;
@@ -118,6 +126,9 @@ public class MsIoServlet extends DispatcherServlet {
                 // making them available for @ExceptionHandler methods and other scenarios.
                 dispatchException = new NestedServletException("Handler dispatch failed", err);
             }
+            if(dispatchException != null) {
+                dispatchException.printStackTrace();
+            }
         }
         catch (Exception ex) {
             //triggerAfterCompletion(processedRequest, response, mappedHandler, ex);
@@ -127,6 +138,7 @@ public class MsIoServlet extends DispatcherServlet {
              //       new NestedServletException("Handler processing failed", err));
         }
         finally {
+
             if (asyncManager.isConcurrentHandlingStarted()) {
                 // Instead of postHandle and afterCompletion
                 if (mappedHandler != null) {

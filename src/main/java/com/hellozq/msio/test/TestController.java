@@ -1,6 +1,7 @@
 package com.hellozq.msio.test;
 
 import com.google.common.collect.Lists;
+import com.hellozq.msio.anno.MsReturnTranslator;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -23,8 +24,9 @@ public class TestController {
     }
 
 
+    @MsReturnTranslator("getPage()#getList($int$5,$int$150,wowowo,$double$1.41)")
     @RequestMapping("/t2")
-    public List test2(){
+    public PageContent test2(){
         List list =  Lists.newArrayList();
         for (int i = 0; i < 360000; i++) {
             HashMap<Object, Object> objectObjectHashMap = new HashMap<>();
@@ -32,6 +34,6 @@ public class TestController {
             objectObjectHashMap.put("age",i + "");
             list.add(objectObjectHashMap);
         }
-        return list;
+        return new PageContent(new Page(list));
     }
 }
