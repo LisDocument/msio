@@ -60,6 +60,18 @@ public class ClassUtils {
         getMethodAccess(clazz).invoke(o,methodName,fieldValue);
     }
 
+    /**
+     * 根据方法名和操作对象进行调用
+     * @param obj 操作对象
+     * @param methodName 方法名
+     * @param args 参数
+     * @return 方法调用后的结果
+     */
+    public static Object invokeMethod(Object obj,String methodName,Object... args){
+        Object invoke = getMethodAccess(obj.getClass()).invoke(obj, methodName, args);
+        return invoke;
+    }
+
 
     /**
      * 默认获取比对map

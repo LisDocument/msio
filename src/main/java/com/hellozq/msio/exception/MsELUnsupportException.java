@@ -6,5 +6,7 @@ package com.hellozq.msio.exception;
  */
 public class MsELUnsupportException extends Exception{
 
-
+    public MsELUnsupportException(String tip){
+        super(tip);
+    }
 }
