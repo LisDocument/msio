@@ -88,12 +88,12 @@ public class MsIoServlet extends DispatcherServlet {
 
                 // Actually invoke the handler.
                 // transport to excel
-                Method method1 = ((HandlerMethod) mappedHandler.getHandler()).getMethod();
-                MsReturnTranslator annotation = method1.getDeclaredAnnotation(MsReturnTranslator.class);
+                Method invokeMethod = ((HandlerMethod) mappedHandler.getHandler()).getMethod();
+                MsReturnTranslator translator = invokeMethod.getDeclaredAnnotation(MsReturnTranslator.class);
                 Object requestResult = servletAssessUtils.getRequestResult(request,response, mappedHandler);
 
-                if(annotation != null){
-                    requestResult = MsELUtils.getValueByEL(requestResult,annotation.value());
+                if(translator != null){
+                    requestResult = MsELUtils.getValueByEL(requestResult,translator.value());
                 }
                 if(requestResult instanceof List){
                     response.setContentType("application/vnd.ms-excel;charset=utf-8");

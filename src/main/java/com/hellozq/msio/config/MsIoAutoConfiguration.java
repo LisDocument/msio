@@ -1,21 +1,36 @@
 package com.hellozq.msio.config;
 
+import com.alibaba.druid.pool.DruidDataSource;
+import com.alibaba.druid.support.ibatis.DruidDataSourceFactory;
 import com.hellozq.msio.bean.common.IFormatConversion;
 import com.hellozq.msio.bean.common.ITransFunctionContainer;
+import com.hellozq.msio.bean.common.MsIoServlet;
 import com.hellozq.msio.config.derivative.BaseInterceptConstruction;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.DispatcherServlet;
+
+import javax.sql.DataSource;
 
 /**
  * @author bin
- * 提供统一的容器供使用
+ * 提供统一的容器供使用,
+ * 协同总配置类，框架入口
  */
 @Configuration
 @Slf4j
-public class MsIoAutoConfiguration {
+class MsIoAutoConfiguration {
+
+    @Value("${spring.micro.listen.url:/upload/*}")
+    private String listenerUrl;
 
     /**
      * 导出容器初始化
@@ -36,6 +51,30 @@ public class MsIoAutoConfiguration {
     public IFormatConversion formatConversion(){
         return new IFormatConversion() {
         };
+    }
+
+    /**
+     * servlet容器初始化
+     * @return 自定义servlet
+     */
+    @ConditionalOnExpression("${spring.msIo.autoServlet:true}")
+    @Bean
+    public MsIoServlet msIoServlet(){
+        return new MsIoServlet();
+    }
+
+    /**
+     * servlet注册
+     * @param msIoServlet servlet实体项
+     * @return 注册集
+     */
+    @ConditionalOnExpression("${spring.msIo.autoServlet:true}")
+    @Bean
+    @Autowired
+    public ServletRegistrationBean<DispatcherServlet> restServlet(MsIoServlet msIoServlet){
+        log.info("msServlet->Bind->"+listenerUrl);
+        //注册新的servlet用于监听上传文件的接口
+        return new ServletRegistrationBean<>(msIoServlet,listenerUrl.split(","));
     }
 
     /**
@@ -75,10 +114,17 @@ public class MsIoAutoConfiguration {
             msIoContainer = abstractMsConfigure.configContainer(msIoContainer);
         }catch (Exception e){
             e.printStackTrace();
-            log.error("初始化失败");
         }
         msIoContainer.init(abstractMsConfigure);
 
         return msIoContainer;
+    }
+
+    @ConditionalOnMissingBean(DataSource.class)
+    @ConditionalOnProperty(name = "spring.msIo.dbLog",havingValue = "true")
+    @Bean(name = "msIoSource")
+    public DataSource dataSource(){
+        DruidDataSource dataSource = new DruidDataSource();
+        return dataSource;
     }
 }

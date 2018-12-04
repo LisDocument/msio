@@ -13,5 +13,5 @@ public interface OutExceptionHandler {
      * @param obj 转录前的数据，作为模板会传入
      * @return 修改后的修正对象，用于替代错误信息填入错误格
      */
-    public Object handle(Exception e,Object obj);
+    Object handle(Exception e,Object obj);
 }

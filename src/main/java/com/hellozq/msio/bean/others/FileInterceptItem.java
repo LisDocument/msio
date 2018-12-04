@@ -93,7 +93,7 @@ public class FileInterceptItem {
     }
 
     @FunctionalInterface
-    interface FileInterceptCustomize<F>{
+    public interface FileInterceptCustomize<F>{
         /**
          * 自定义满足特定需求的过滤方法
          * @param from 文件
