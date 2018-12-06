@@ -31,7 +31,7 @@ public class MsELUtils {
         return result;
     }
 
-    public static Object valueCalculator(Object obj,String methodInfo) throws MsELUnsupportException{
+    private static Object valueCalculator(Object obj,String methodInfo) throws MsELUnsupportException{
         String[] split = methodInfo.split("\\(");
         if(split.length != 2){
             throw new MsELUnsupportException("EL表达式格式异常");

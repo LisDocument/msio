@@ -1,12 +1,14 @@
 package com.hellozq.msio.config;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.hellozq.msio.anno.*;
 import com.hellozq.msio.bean.common.CommonBean;
-import com.hellozq.msio.bean.common.Operator;
 import com.hellozq.msio.bean.common.ITransFunctionContainer;
+import com.hellozq.msio.bean.common.Operator;
 import com.hellozq.msio.utils.ClassUtils;
 import com.hellozq.msio.utils.StringRegexUtils;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,17 +49,22 @@ public class MsIoContainer {
     /**
      * 映射缓存池
      */
-    private Map<String,LinkedHashMap<String,Information>> mappingCache = new HashMap<>();
+    private Map<String,LinkedHashMap<String,Information>> mappingCache = Maps.newHashMapWithExpectedSize(32);
+
+    /**
+     * 复杂映射缓存池
+     */
+    private Map<String, ComplexBo> complexMappingCache = Maps.newHashMapWithExpectedSize(32);
 
     /**
      * 类映射缓冲池
      */
-    private Map<String,Class> classCache = new HashMap<>();
+    private Map<String,Class> classCache = Maps.newHashMapWithExpectedSize(32);
 
     /**
      * 对象缓冲池
      */
-    private Map<Class,Object> instanceCache = new HashMap<>();
+    private Map<Class,Object> instanceCache = Maps.newHashMapWithExpectedSize(128);
 
     /**
      * 仅有热部署被启用时才启用临时映射存储池，若热部署标志为true的情况下，所有通过配置文件引入的对象映射会被驻留在此处，
@@ -141,6 +148,20 @@ public class MsIoContainer {
             return null;
         }
     }
+
+    /**
+     * 获取复杂映射深度
+     * @param key 键值
+     * @return 深度
+     */
+    public int getDepthLevel(String key){
+        ComplexBo bo = complexMappingCache.get(key);
+        if(null == bo){
+            return 0;
+        }
+        return bo.getDepthLevel();
+    }
+
     /**
      * 根据key获取其缓存的的类型，如果未找到，返回Map
      * @param key 索引值
@@ -198,7 +219,10 @@ public class MsIoContainer {
      * @return 定向格式
      */
     private LinkedHashMap<String,Information> getCache(String key){
-        return mappingCache.get(key);
+        if(null == complexMappingCache.get(key)){
+            return mappingCache.get(key);
+        }
+        return complexMappingCache.get(key).getStructure();
     }
 
     /**
@@ -254,6 +278,93 @@ public class MsIoContainer {
     }
 
     /**
+     * 获取层数
+     * @param msOperator 注解
+     * @param i 标记给定初始值
+     * @return 层数
+     */
+    private int getDepthLevel(MsOperator msOperator,int i){
+        for (Class<?> clazz : msOperator.subClazz()) {
+            MsOperator annotation = clazz.getDeclaredAnnotation(MsOperator.class);
+            if(0 != annotation.subClazz().length){
+                i++;
+                int temp = getDepthLevel(annotation, i);
+                i = temp >= i ? temp : i;
+            }
+        }
+        return i;
+    }
+
+    /**
+     * 复杂的映射导入
+     * @param clazz 复杂的Clazz
+     * @return 成功
+     */
+    private boolean addMappingComplex(Class<?> clazz) throws NoSuchMethodException,InstantiationException,IllegalAccessException{
+        MsOperator operator = clazz.getDeclaredAnnotation(MsOperator.class);
+        int depthLevel = getDepthLevel(operator, 2);
+        ComplexBo complexBo = new ComplexBo();
+        complexBo.setDepthLevel(depthLevel);
+        if(complexMappingCache.containsKey(operator.value())){
+            throw new IllegalAccessException("领域模型指向id重复，重复id：" + operator.value() + ",请检查类：" +
+                    clazz.getName() + "||" + classCache.get(operator.value()).getName());
+        }
+        classCache.put(operator.value(),clazz);
+
+        LinkedHashMap<String,Information> mappingItem = new LinkedHashMap<>();
+        Field[] fields = clazz.getDeclaredFields();
+        //遍历变量
+        for (Field field : fields) {
+            if(field.getAnnotation(MsIgnore.class) != null){
+                continue;
+            }
+            MsItem annotation = field.getDeclaredAnnotation(MsItem.class);
+            if(annotation == null){
+                continue;
+            }
+            //判断是否是复杂对象==>需要修改返回类型
+            Class<?> type = field.getType();
+            MsOperator msOperator = type.getDeclaredAnnotation(MsOperator.class);
+            if(null != msOperator){
+                LinkedHashMap<String, Information> value = get(type);
+                if(null == value || value.isEmpty()){
+                    addMapping(type);
+                    value = get(type);
+                }
+                Information information = new Information();
+                information.setFieldType(type);
+                information.setName(field.getDeclaredAnnotation(MsItem.class).value());
+                information.setChildren(value);
+                mappingItem.put(field.getName(),information);
+                continue;
+            }
+            Information information = new Information();
+            //如果有方法名称的话
+            if(!StringUtils.isEmpty(annotation.methodName())){
+                try {
+                    Method method = containerClass.getDeclaredMethod(annotation.methodName(), Object.class);
+                    information.setMethod(method);
+                    information.setInvokeObject(iTransFunctionContainer);
+                }catch (NoSuchMethodException e){
+                    log.error("获取对应的方法失败，原因可能为：容器中未定义该方法；容器中方法参数未定义为Object；自定义容器未初始化：检查并修正",e);
+                    throw e;
+                }
+                //没有,自动调用默认的类型转换方法
+            }else{
+                information.setOperator(newInstance(annotation.transFormOperator()));
+            }
+            information.setFieldType(type);
+            information.setAutomatic(field.getAnnotation(MsAutomatic.class));
+            information.setName(StringRegexUtils.getOrDefault(annotation.value(),field.getName()));
+            mappingItem.put(field.getName(),information);
+        }
+        complexBo.setStructure(mappingItem);
+        complexMappingCache.put(operator.value(),complexBo);
+        System.out.println(depthLevel);
+        return true;
+    }
+
+    /**
      * 注解添加映射方法,专门为Pojo类使用的
      * @param clazz 需要被映射的方法
      * @return 是否被添加
@@ -261,6 +372,10 @@ public class MsIoContainer {
     @SuppressWarnings("all")
     public boolean addMapping(Class<?> clazz) throws NoSuchMethodException,InstantiationException,IllegalAccessException{
         MsOperator msOperator = (MsOperator) clazz.getDeclaredAnnotation(MsOperator.class);
+        //复杂映射计算直接推送至复杂计算单元执行
+        if(0 != msOperator.subClazz().length){
+            return addMappingComplex(clazz);
+        }
         if(mappingCache.containsKey(msOperator.value())){
             throw new IllegalAccessException("领域模型指向id重复，重复id：" + msOperator.value() + ",请检查类：" +
                     clazz.getName() + "||" + classCache.get(msOperator.value()).getName());
@@ -305,6 +420,15 @@ public class MsIoContainer {
     }
 
     /**
+     * 对复杂Map对象的解析方法，
+     * @param jsonData 复杂map
+     * @return 是否成功
+     */
+    private boolean addMappingComplex(Map jsonData) throws ClassNotFoundException,NoSuchMethodException,IllegalAccessException,NoSuchFieldException{
+        return false;
+    }
+
+    /**
      * 对Map对象的解析方法，理论上这部分数据应有配置文件中的数据实现
      * 理论上对Map进行维护
      * @param jsonData 翻译过来的数据
@@ -314,6 +438,9 @@ public class MsIoContainer {
     public boolean addMapping(Map jsonData) throws ClassNotFoundException,NoSuchMethodException,IllegalAccessException,NoSuchFieldException{
         if(jsonData.isEmpty()){
             return false;
+        }
+        if(jsonData.values().stream().filter(obj -> obj instanceof Map).count() > 0){
+            addMappingComplex(jsonData);
         }
         for (Object o : jsonData.entrySet()) {
             Map.Entry<String,LinkedHashMap<Object,Object>> item = (Map.Entry<String,LinkedHashMap<Object,Object>>) o;
@@ -364,6 +491,18 @@ public class MsIoContainer {
 
     /**
      * @author bin
+     * 复杂逻辑单元Bo类，存储深度和层级结构
+     */
+    @Data
+    public class ComplexBo {
+
+        private Integer depthLevel;
+
+        private LinkedHashMap<String,Information> structure;
+    }
+
+    /**
+     * @author bin
      * 用于存储基本信息的数据集
      * 保存当前代理对象，当前变量的中文注释，以及其缓冲的方法
      */
@@ -380,6 +519,17 @@ public class MsIoContainer {
         private MsAutomatic automatic;
 
         private Class<?> fieldType;
+
+        private LinkedHashMap<String,Information> children;
+
+        public LinkedHashMap<String, Information> getChildren() {
+            return children;
+        }
+
+        public Information setChildren(LinkedHashMap<String, Information> children) {
+            this.children = children;
+            return this;
+        }
 
         public Class<?> getFieldType() {
             return fieldType;
@@ -434,25 +584,22 @@ public class MsIoContainer {
             if (this == o) {
                 return true;
             }
-            if (o == null || getClass() != o.getClass()) {
+            if (o == null || getClass() != o.getClass()){
                 return false;
             }
-
             Information that = (Information) o;
-
-            return (name != null ? name.equals(that.name) : that.name == null) &&
-                    (method != null ? method.equals(that.method) : that.method == null) &&
-                    (invokeObject != null ? invokeObject.equals(that.invokeObject) : that.invokeObject == null) &&
-                    (operator != null ? operator.equals(that.operator) : that.operator == null);
+            return Objects.equals(name, that.name) &&
+                    Objects.equals(method, that.method) &&
+                    Objects.equals(invokeObject, that.invokeObject) &&
+                    Objects.equals(operator, that.operator) &&
+                    Objects.equals(automatic, that.automatic) &&
+                    Objects.equals(fieldType, that.fieldType) &&
+                    Objects.equals(children, that.children);
         }
 
         @Override
         public int hashCode() {
-            int result = name != null ? name.hashCode() : 0;
-            result = 31 * result + (method != null ? method.hashCode() : 0);
-            result = 31 * result + (invokeObject != null ? invokeObject.hashCode() : 0);
-            result = 31 * result + (operator != null ? operator.hashCode() : 0);
-            return result;
+            return Objects.hash(name, method, invokeObject, operator, automatic, fieldType, children);
         }
     }
 }

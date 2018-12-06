@@ -3,5 +3,21 @@
     "xhz":"小胡子\\$$t1",
     "dhz":"大胡子",
     "\\className":"com.hellozq.msio.test.Test"
+  },
+  "2":{
+    "min":{
+      "name":"基本信息",
+      "\\name":"名称",
+      "age":"年龄",
+      "sex":"性别",
+      "hobbies":{
+        "name":"爱好",
+        "hobby1":"爱好1",
+        "hobby2":"爱好2",
+        "hobby3":"爱好3"
+      }
+    },
+    "id":"标识信息",
+    "level":"评级"
   }
 }

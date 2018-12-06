@@ -26,4 +26,10 @@ public @interface MsOperator {
      */
     String value();
 
+    /**
+     *
+     * @return 修饰子类，如果有子类将有复杂Processor处理
+     */
+    Class<?>[] subClazz() default {};
+
 }

@@ -3,6 +3,7 @@ package com.hellozq.msio.bean.db;
 import com.hellozq.msio.anno.MsItem;
 import com.hellozq.msio.anno.MsOperator;
 import com.hellozq.msio.bean.common.impl.DateOperator;
+import lombok.Data;
 
 import java.util.Date;
 
@@ -12,6 +13,7 @@ import java.util.Date;
  */
 @SuppressWarnings("unused")
 @MsOperator(value = "forwardingRecode")
+@Data
 public class ForwardingRecode {
 
     /**
@@ -63,75 +65,4 @@ public class ForwardingRecode {
      */
     private boolean isReturn;
 
-    public String getUserName() {
-        return userName;
-    }
-
-    public void setUserName(String userName) {
-        this.userName = userName;
-    }
-
-    public String getSourceUrl() {
-        return sourceUrl;
-    }
-
-    public void setSourceUrl(String sourceUrl) {
-        this.sourceUrl = sourceUrl;
-    }
-
-    public Date getUploadTime() {
-        return uploadTime;
-    }
-
-    public void setUploadTime(Date uploadTime) {
-        this.uploadTime = uploadTime;
-    }
-
-    public String getFileName() {
-        return fileName;
-    }
-
-    public void setFileName(String fileName) {
-        this.fileName = fileName;
-    }
-
-    public Exception getException() {
-        return exception;
-    }
-
-    public void setException(Exception exception) {
-        this.exception = exception;
-    }
-
-    public long getFileSize() {
-        return fileSize;
-    }
-
-    public void setFileSize(long fileSize) {
-        this.fileSize = fileSize;
-    }
-
-    public String getCacheFilePath() {
-        return cacheFilePath;
-    }
-
-    public void setCacheFilePath(String cacheFilePath) {
-        this.cacheFilePath = cacheFilePath;
-    }
-
-    public boolean isStore() {
-        return isStore;
-    }
-
-    public void setStore(boolean store) {
-        isStore = store;
-    }
-
-    public boolean isReturn() {
-        return isReturn;
-    }
-
-    public void setReturn(boolean aReturn) {
-        isReturn = aReturn;
-    }
 }
