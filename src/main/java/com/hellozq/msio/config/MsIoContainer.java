@@ -53,9 +53,9 @@ public class MsIoContainer {
     private Map<String,LinkedHashMap<String,Information>> mappingCache = Maps.newHashMapWithExpectedSize(32);
 
     /**
-     * 复杂映射缓存池
+     * 复杂映射层数缓存池
      */
-    private Map<String, ComplexBo> complexMappingCache = Maps.newHashMapWithExpectedSize(32);
+    private Map<String, Integer> complexMappingCache = Maps.newHashMapWithExpectedSize(32);
 
     /**
      * 类映射缓冲池
@@ -123,6 +123,10 @@ public class MsIoContainer {
         }else{
             allRewords = mappingCache;
         }
+        //删除复杂的映射
+        for (String key : complexMappingCache.keySet()) {
+            allRewords.remove(key);
+        }
         List<String> keys = new ArrayList<>();
         for (String key : allRewords.keySet()) {
             LinkedHashMap<String, Information> value = allRewords.get(key);
@@ -156,11 +160,7 @@ public class MsIoContainer {
      * @return 深度
      */
     public int getDepthLevel(String key){
-        ComplexBo bo = complexMappingCache.get(key);
-        if(null == bo){
-            return 0;
-        }
-        return bo.getDepthLevel();
+        return complexMappingCache.getOrDefault(key,1);
     }
 
     /**
@@ -220,10 +220,7 @@ public class MsIoContainer {
      * @return 定向格式
      */
     private LinkedHashMap<String,Information> getCache(String key){
-        if(null == complexMappingCache.get(key)){
-            return mappingCache.get(key);
-        }
-        return complexMappingCache.get(key).getStructure();
+        return mappingCache.get(key);
     }
 
     /**
@@ -273,9 +270,27 @@ public class MsIoContainer {
         } catch (IOException e) {
             log.error("配置文件格式错误，请好好检查");
             e.printStackTrace();
-        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | NoSuchFieldException e){
-            e.printStackTrace();
+        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | NoSuchFieldException | UnsupportFormatException e){
+            throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * 判断层数
+     * @param data 数据
+     * @param i 初始层数，一般定义为1
+     * @return 实际最深的层数
+     */
+    private int checkDepthLevel(LinkedHashMap<String,Information> data,int i){
+        int result = 0;
+        for (Information value : data.values()) {
+            if(null != value.getChildren() && !value.getChildren().isEmpty()){
+                //仅仅取每个元素的深度，会将每个元素的最大深度得出
+                result = checkDepthLevel(value.getChildren(),++i);
+            }
+            i = result > i ? result : i;
+        }
+        return i;
     }
 
     /**
@@ -285,7 +300,6 @@ public class MsIoContainer {
      */
     private boolean addMappingComplex(Class<?> clazz) throws NoSuchMethodException,InstantiationException,IllegalAccessException{
         MsOperator operator = clazz.getDeclaredAnnotation(MsOperator.class);
-        ComplexBo complexBo = new ComplexBo();
         if(complexMappingCache.containsKey(operator.value())){
             throw new IllegalAccessException("领域模型指向id重复，重复id：" + operator.value() + ",请检查类：" +
                     clazz.getName() + "||" + classCache.get(operator.value()).getName());
@@ -339,10 +353,10 @@ public class MsIoContainer {
             information.setName(StringRegexUtils.getOrDefault(annotation.value(),field.getName()));
             mappingItem.put(field.getName(),information);
         }
-        complexBo.setStructure(mappingItem);
-        complexMappingCache.put(operator.value(),complexBo);
-        // todo
+        mappingCache.put(operator.value(),mappingItem);
         //计算层数
+        int depthLevel = checkDepthLevel(mappingItem, 1);
+        complexMappingCache.put(operator.value(),depthLevel);
         return true;
     }
 
@@ -401,17 +415,6 @@ public class MsIoContainer {
         return true;
     }
 
-    private int getDepthLevel(Map jsonData,int i){
-        for (Object value : jsonData.values()) {
-            if(value instanceof Map){
-                i++;
-                int temp = getDepthLevel((Map)value, i);
-                i = temp >= i ? temp : i;
-            }
-        }
-        return i;
-    }
-
 
     /**
      * 对Map对象的解析方法，理论上这部分数据应有配置文件中的数据实现
@@ -435,14 +438,9 @@ public class MsIoContainer {
     /**
      * 对复杂Map对象的解析方法，
      * @param jsonData 复杂map
-     * @return 是否成功
      */
     @SuppressWarnings("unchecked")
-    private boolean addMappingComplex(Object key,Map jsonData) throws ClassNotFoundException,NoSuchMethodException,IllegalAccessException,NoSuchFieldException,UnsupportFormatException{
-        //这里初始值设置为1的原因是已经过滤了key的层级，而pojo类转换时未过滤因此这边会少一层
-//        int depthLevel = getDepthLevel(jsonData, 1);
-        ComplexBo bo = new ComplexBo();
-//        bo.setDepthLevel(depthLevel);
+    private void addMappingComplex(Object key,Map jsonData) throws ClassNotFoundException,NoSuchMethodException,IllegalAccessException,NoSuchFieldException,UnsupportFormatException{
         for (Object o : jsonData.entrySet()) {
             Map.Entry<String, LinkedHashMap<Object, Object>> item = (Map.Entry<String, LinkedHashMap<Object, Object>>) o;
             LinkedHashMap<String, Information> mappingItem = new LinkedHashMap<>();
@@ -457,12 +455,22 @@ public class MsIoContainer {
             for (Object egName : information.keySet()) {
                 //复杂Map递归求证
                 if(information.get(egName) instanceof Map){
-                    Object name = ((Map) egName).get("name");
+                    Object name = ((Map) information.get(egName)).get("name");
                     if(null == name){
                         throw new UnsupportFormatException("配置文件映射时内部集egName找不到必须存在的name属性");
                     }
                     Information info = new Information();
                     info.setName(name.toString());
+                    //如果存在id项，使用id项进行分析
+                    if(((Map) information.get(egName)).containsKey("id")){
+                        String id = ((Map) information.get(egName)).get("id").toString();
+                        LinkedHashMap<String, Information> valueTemp = get(id);
+                        if(null == valueTemp){
+                            throw new RuntimeException(new UnsupportFormatException("未找到对应子映射，请确认是否未定义或者是否位置放置在该映射之前"));
+                        }
+                        info.setChildren(valueTemp);
+                        continue;
+                    }
                     LinkedHashMap<String, Information> value = get(egName.toString());
                     if(value == null){
                         addMappingItem(egName.toString(),(LinkedHashMap<Object,Object>) information.get(egName));
@@ -471,7 +479,6 @@ public class MsIoContainer {
                     info.setChildren(value);
                     mappingItem.put(egName.toString(),info);
                     //映射直接获取
-                    //todo
                     continue;
                 }
                 String cnName = information.get(egName).toString();
@@ -497,18 +504,18 @@ public class MsIoContainer {
                 }
             }
             //计算深度
-            //todo
+            int depthLevel = checkDepthLevel(mappingItem, 1);
+            complexMappingCache.put(key.toString(),depthLevel);
             if(hotDeploySign){
-                temporaryMappingCache.put(item.getKey(),mappingItem);
+                temporaryMappingCache.put(key.toString(),mappingItem);
             }else{
-                Class clazz = classCache.get(item.getKey());
-                if(mappingCache.containsKey(item.getKey())){
-                    throw new IllegalAccessException("领域模型指向id重复，重复id：" + item.getKey() +
+                Class clazz = classCache.get(key.toString());
+                if(mappingCache.containsKey(key.toString())){
+                    throw new IllegalAccessException("领域模型指向id重复，重复id：" + key.toString() +
                             (clazz == null ? ",请检查配置文件配置项是否重复：" : ("pojo类重复，类名为:" + clazz.getName())));
                 }
             }
         }
-        return false;
     }
 
     /**
@@ -516,7 +523,7 @@ public class MsIoContainer {
      */
     private void addMappingItem(String key, LinkedHashMap<Object, Object> information)
             throws ClassNotFoundException, NoSuchMethodException, NoSuchFieldException, IllegalAccessException,UnsupportFormatException {
-        if(information.values().stream().filter(obj -> obj instanceof Map).count() > 0){
+        if(information.values().stream().anyMatch(obj -> obj instanceof Map)){
             addMappingComplex(key,information);
         }
         LinkedHashMap<String, Information> mappingItem = new LinkedHashMap<>();
@@ -559,18 +566,6 @@ public class MsIoContainer {
                         (clazz == null ? ",请检查配置文件配置项是否重复：" : ("pojo类重复，类名为:" + clazz.getName())));
             }
         }
-    }
-
-    /**
-     * @author bin
-     * 复杂逻辑单元Bo类，存储深度和层级结构
-     */
-    @Data
-    public class ComplexBo {
-
-        private Integer depthLevel;
-
-        private LinkedHashMap<String,Information> structure;
     }
 
     /**

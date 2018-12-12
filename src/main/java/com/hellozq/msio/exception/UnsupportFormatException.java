@@ -7,6 +7,6 @@ package com.hellozq.msio.exception;
 public class UnsupportFormatException extends Exception{
 
     public UnsupportFormatException(String tip){
-        super("tip");
+        super(tip);
     }
 }

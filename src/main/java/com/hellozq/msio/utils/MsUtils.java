@@ -124,4 +124,26 @@ public class MsUtils {
         }
         return cellValue;
     }
+
+    /**
+     * 避免空指针异常获取行
+     * @param sheet 工作簿
+     * @param rowNum 行号
+     * @return 行
+     */
+    public static Row createOrGetRow(Sheet sheet, int rowNum){
+        return null == sheet.getRow(rowNum) ? sheet.createRow(rowNum) : sheet.getRow(rowNum);
+
+    }
+
+    /**
+     * 避免空指针异常获取单元格
+     * @param row 行
+     * @param cellNum 列好
+     * @return 单元格
+     */
+    public static Cell createOrGetCell(Row row, int cellNum){
+        return null == row.getCell(cellNum) ? row.createCell(cellNum) : row.getCell(cellNum);
+    }
+
 }

@@ -650,14 +650,79 @@ public class ExcelFactory {
      * 复杂excel实例单元
      * 复杂Excel：格式复杂，有合并单元格选项，需要筛选
      */
-    public final class FlexExcelBean{
+    public final class ComplexExcelBean {
 
     }
 
     /**
      * 复杂excel实例单元导出
      */
-    public final class FlexExcelBeanReverse{
+    public final class ComplexExcelBeanReverse {
+        /**
+         * 用户传入的数据，需要导出
+         */
+        private Map<Integer,List> data;
+        /**
+         * 导出之后产生的workbook，用于写
+         */
+        private Workbook workbook;
+        /**
+         * 标记是否集散多线程同时处理
+         */
+        private boolean asycSign;
+        /**
+         * 是否开启本地缓存，本地缓存默认开启，仅对XLSX有效
+         */
+        private boolean localCache;
+        /**
+         * 用于处理中途错误的问题
+         */
+        private OutExceptionHandler handler = null;
+        /**
+         * 开启本地缓存后，缓存的数量
+         */
+        private int localCacheSize;
+        /**
+         * 页码，存储当前页码指针位置
+         */
+        private int pageIndex = 0;
+        /**
+         * 每页数据最大承受值，如果达到了会自动进行翻页
+         */
+        private int pageSize;
+        /**
+         * 缓存的页码索引对象
+         */
+        private Map<Integer,String> mapKey;
+        /**
+         * 文件导出后的格式
+         */
+        private ExcelDealType type;
 
+        private MsIoContainer msIoContainer;
+
+
+        private ComplexExcelBeanReverse(boolean asycSign, boolean localCache, ExcelDealType type,Map<Integer,List> data,
+                                       int localCacheSize, int pageSize, Map<Integer, String> mapKey, OutExceptionHandler handler) {
+            this.data = data;
+            this.asycSign = asycSign;
+            this.localCache = localCache;
+            this.handler = handler;
+            this.localCacheSize = localCacheSize;
+            this.pageSize = pageSize;
+            this.mapKey = mapKey;
+            this.type = type;
+            this.msIoContainer = SpringUtils.getBean(MsIoContainer.class);
+        }
+
+
+        private ComplexExcelBeanReverse(String id,List data,OutExceptionHandler handler){
+            this(false, true, ExcelDealType.XLSX, ImmutableMap.of(0,data), 500, 65536, ImmutableMap.of(0,id),handler);
+        }
+
+
+        private void translate(){
+
+        }
     }
 }
