@@ -436,7 +436,7 @@ public class ExcelFactory {
     /**
      * 简易excel实例单元-输出单元
      */
-    public static final class SimpleExcelBeanReverse{
+    public static final class SimpleExcelBeanReverse implements IExcelBeanReverse{
 
         /**
          * 用户传入的数据，需要导出
@@ -484,6 +484,7 @@ public class ExcelFactory {
          * 获取到编译好的工作簿
          * @return
          */
+        @Override
         public Workbook getWorkbook() {
             return workbook;
         }
@@ -657,7 +658,7 @@ public class ExcelFactory {
     /**
      * 复杂excel实例单元导出
      */
-    public final class ComplexExcelBeanReverse {
+    public final class ComplexExcelBeanReverse implements IExcelBeanReverse{
         /**
          * 用户传入的数据，需要导出
          */
@@ -701,6 +702,10 @@ public class ExcelFactory {
 
         private MsIoContainer msIoContainer;
 
+        @Override
+        public Workbook getWorkbook(){
+            return this.workbook;
+        }
 
         private ComplexExcelBeanReverse(boolean asycSign, boolean localCache, ExcelDealType type,Map<Integer,List> data,
                                        int localCacheSize, int pageSize, Map<Integer, String> mapKey, OutExceptionHandler handler) {
@@ -713,6 +718,7 @@ public class ExcelFactory {
             this.mapKey = mapKey;
             this.type = type;
             this.msIoContainer = SpringUtils.getBean(MsIoContainer.class);
+            translate();
         }
 
 
@@ -722,6 +728,35 @@ public class ExcelFactory {
 
 
         private void translate(){
+            if(data == null || data.isEmpty()){
+                throw new DataUnCatchException("未找到应有的数据集,若要制造模板，请传入一个空对象");
+            }
+            //如果标记为导出为XLS格式的，检查65536是否达到，达到默认翻页
+            if(ExcelDealType.XLS.equals(type)){
+                this.workbook = new HSSFWorkbook();
+            }else{
+                this.workbook = new SXSSFWorkbook(localCacheSize);
+            }
+            TreeSet<Integer> sortKey = Sets.newTreeSet(data.keySet());
+            for (Integer pageNo : sortKey) {
+                List list = data.get(pageNo);
+                int ceil = (int)Math.ceil(list.size() * 1.0 / pageSize);
+                //自动翻页操作，pageNo作为缓存的映射key传入
+                if(1 == ceil){
+                    writeToSheet(list,workbook.createSheet(),1);
+                    continue;
+                }
+                for (int i = 0; i < ceil; i++) {
+                    if(list.size() < (i + 1) * pageSize){
+                        writeToSheet(list.subList(i * pageSize,list.size() - 1),workbook.createSheet(),ceil);
+                        continue;
+                    }
+                    writeToSheet(list.subList(i*pageSize,(i + 1) * pageSize),workbook.createSheet(),ceil);
+                }
+            }
+        }
+
+        private void writeToSheet(List list, Sheet sheet, int ceil){
 
         }
     }
