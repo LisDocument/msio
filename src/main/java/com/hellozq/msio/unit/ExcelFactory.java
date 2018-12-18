@@ -406,7 +406,7 @@ public class ExcelFactory {
      * @param handler 错误处理方法
      * @return 封装好的处理
      */
-    public static SimpleExcelBeanReverse getSimpleExcelBeanReverseInstance(Map<Integer,List> data,boolean asycSign,
+    public static IExcelBeanReverse getSimpleExcelBeanReverseInstance(Map<Integer,List> data,boolean asycSign,
                                                                            boolean localCache,int localCacheSize, ExcelDealType type,
                                                                            OutExceptionHandler handler,int pageSize){
         SimpleExcelBeanReverse bean = new SimpleExcelBeanReverse(data, asycSign, localCache, localCacheSize, type, handler, pageSize);
@@ -419,7 +419,7 @@ public class ExcelFactory {
      * @param handler 错误处理方法
      * @return 封装好的处理类
      */
-    public static SimpleExcelBeanReverse getSimpleExcelBeanReverseInstance(Map<Integer,List> data,OutExceptionHandler handler){
+    public static IExcelBeanReverse getSimpleExcelBeanReverseInstance(Map<Integer,List> data,OutExceptionHandler handler){
         return new SimpleExcelBeanReverse(data,handler);
     }
 
@@ -429,7 +429,7 @@ public class ExcelFactory {
      * @param handler 错误处理方法
      * @return 封装好的处理类
      */
-    public static SimpleExcelBeanReverse getSimpleExcelBeanReverseInstance(List data,OutExceptionHandler handler){
+    public static IExcelBeanReverse getSimpleExcelBeanReverseInstance(List data,OutExceptionHandler handler){
         return new SimpleExcelBeanReverse(ImmutableMap.of(1,data),handler);
     }
 
@@ -655,10 +655,14 @@ public class ExcelFactory {
 
     }
 
+
+    public static IExcelBeanReverse getComplexExcelBeanReverseInstance(String id,List data,OutExceptionHandler handler){
+        return new ComplexExcelBeanReverse(id,data,handler);
+    }
     /**
      * 复杂excel实例单元导出
      */
-    public final class ComplexExcelBeanReverse implements IExcelBeanReverse{
+    public final static class ComplexExcelBeanReverse implements IExcelBeanReverse{
         /**
          * 用户传入的数据，需要导出
          */
@@ -743,21 +747,72 @@ public class ExcelFactory {
                 int ceil = (int)Math.ceil(list.size() * 1.0 / pageSize);
                 //自动翻页操作，pageNo作为缓存的映射key传入
                 if(1 == ceil){
-                    writeToSheet(list,workbook.createSheet(),1);
+                    writeToSheet(list,workbook.createSheet(),1,mapKey.get(pageNo));
                     continue;
                 }
                 for (int i = 0; i < ceil; i++) {
                     if(list.size() < (i + 1) * pageSize){
-                        writeToSheet(list.subList(i * pageSize,list.size() - 1),workbook.createSheet(),ceil);
+                        writeToSheet(list.subList(i * pageSize,list.size() - 1),workbook.createSheet(),ceil, mapKey.get(pageNo));
                         continue;
                     }
-                    writeToSheet(list.subList(i*pageSize,(i + 1) * pageSize),workbook.createSheet(),ceil);
+                    writeToSheet(list.subList(i*pageSize,(i + 1) * pageSize),workbook.createSheet(),ceil, mapKey.get(pageNo));
                 }
             }
         }
 
-        private void writeToSheet(List list, Sheet sheet, int ceil){
+        private void writeToSheet(List list, Sheet sheet, int ceil,String key){
+            if(list.isEmpty()){
+                return;
+            }
+            Object instance = list.get(0);
+            //全局错误
+            DataUnCatchException error = null;
+            //解析行为
+            if(instance instanceof Map){
+                //获取深度
+                int depthLevel = msIoContainer.getDepthLevel(key);
+                //获取映射信息
+                LinkedHashMap<String, MsIoContainer.Information> mapping = msIoContainer.get(key);
+                //编写标题
+                mapComplexTitle(mapping,depthLevel,0,0,sheet);
+            }else{
 
+            }
+        }
+
+        /**
+         *
+         * @param mapping 标题数据源
+         * @param depthLevel 最下层
+         * @param maxLevel 当前层，用于统计当前指针层数，从0开始向下延伸，叶子层一律用最下层作为lastRowNum，双亲层一般为单层
+         * @param index 当前列，作用为指针，在递归过程中能够记录
+         * @param sheet 页面
+         * @return 数据
+         */
+        private int mapComplexTitle(LinkedHashMap<String, MsIoContainer.Information> mapping, int depthLevel,int maxLevel,int index, Sheet sheet){
+            if(null == mapping || mapping.isEmpty()){
+                return 1;
+            }
+            int count = 0;
+            for (String key : mapping.keySet()) {
+                MsIoContainer.Information information = mapping.get(key);
+                //单项最低
+                int itemCount = mapComplexTitle(information.getChildren(), depthLevel, maxLevel + 1, index + 1, sheet);
+                //无子项
+                if(1 == itemCount){
+                    //合并叶子单元格
+                    MsUtils.mergeAndCenteredCell(sheet,information.getName(),maxLevel,depthLevel-1,index,index,true,true);
+                    //指针下滑计数
+                    index += 1;
+                    count ++;
+                }else{
+                    //合并双亲单元格
+                    MsUtils.mergeAndCenteredCell(sheet,information.getName(),maxLevel,maxLevel,index,index + itemCount,true,true);
+                    index += itemCount;
+                    count += itemCount;
+                }
+            }
+            return count;
         }
     }
 }

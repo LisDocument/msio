@@ -2,11 +2,10 @@ package com.hellozq.msio.utils;
 
 import com.hellozq.msio.config.MsIoContainer;
 import org.apache.poi.hssf.usermodel.HSSFDateUtil;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.springframework.util.StringUtils;
 
 import java.text.DecimalFormat;
@@ -52,6 +51,52 @@ public class MsUtils {
             }
         }
         return -1;
+    }
+
+    /**
+     * 合并单元格,默认居中处理
+     * @param value 单元格需要填入数据
+     * @param startRowNo 开始行
+     * @param endRowNo 结束行/包括
+     * @param startColumnNo 开始列
+     * @param endColumnNo 结束列/包括
+     * @param isCover 是否覆盖 ，true会删除之前的数据，false若是之前有数据会进行拼接放入，value会被无视
+     * @param isTitle 是否标题，标题格式会被处理,true为标题
+     */
+    public static void mergeAndCenteredCell(Sheet sheet,String value, int startRowNo, int endRowNo,
+                                                int startColumnNo, int endColumnNo,boolean isCover,boolean isTitle){
+        StringBuilder oldValue = new StringBuilder();
+        for (int i = startRowNo; i <= endRowNo; i++) {
+            for (int j = startColumnNo; j <= endColumnNo; j++) {
+                Cell cell = createOrGetCell(sheet,startRowNo,startColumnNo);
+                if(!isCover){
+                    String oldTemp = getStringValueFromCell(cell);
+                    oldValue.append(oldTemp);
+                }else{
+                    cell.removeCellComment();
+                }
+            }
+        }
+        sheet.addMergedRegion(new CellRangeAddress(startRowNo,endRowNo,startColumnNo,endColumnNo));
+        Cell orGetCell = createOrGetCell(sheet, startRowNo, startColumnNo);
+        Workbook workbook = sheet.getWorkbook();
+        CellStyle cellStyle = workbook.createCellStyle();
+        cellStyle.cloneStyleFrom(orGetCell.getCellStyle());
+        cellStyle.setAlignment(XSSFCellStyle.ALIGN_CENTER);
+        cellStyle.setVerticalAlignment(XSSFCellStyle.VERTICAL_CENTER);
+        if(isTitle){
+            setTitle(cellStyle,workbook);
+        }
+        orGetCell.setCellStyle(cellStyle);
+        orGetCell.setCellValue("".equals(oldValue.toString()) ? value : oldValue.toString());
+    }
+
+    public static void setTitle(CellStyle cellStyle,Workbook workbook){
+        Font font = workbook.createFont();
+        font.setFontName("黑体");
+        // 设置字体大小
+        font.setFontHeightInPoints((short) 18);
+        cellStyle.setFont(font);
     }
 
     /**
@@ -144,6 +189,16 @@ public class MsUtils {
      */
     public static Cell createOrGetCell(Row row, int cellNum){
         return null == row.getCell(cellNum) ? row.createCell(cellNum) : row.getCell(cellNum);
+    }
+
+    /**
+     * 避免空指针异常获取单元格
+     * @param rowNum 行
+     * @param cellNum 列好
+     * @return 单元格
+     */
+    public static Cell createOrGetCell(Sheet sheet,int rowNum,int cellNum){
+        return createOrGetCell(createOrGetRow(sheet, rowNum),cellNum);
     }
 
 }

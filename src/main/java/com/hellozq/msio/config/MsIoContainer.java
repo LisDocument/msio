@@ -47,6 +47,10 @@ public class MsIoContainer {
     private final static String FUNCTION_SIGN = "$$";
 
     private final static String FILE_NAME = "msio.json";
+
+    private final static String MAPPING_ID = "id";
+
+    private final static String MAPPING_NAME = "name";
     /**
      * 映射缓存池
      */
@@ -267,6 +271,7 @@ public class MsIoContainer {
         try {
             LinkedHashMap linkedHashMap = CommonBean.OBJECT_MAPPER.readValue(jsonMapper, LinkedHashMap.class);
             addMapping(linkedHashMap);
+            log.info("json配置成功");
         } catch (IOException e) {
             log.error("配置文件格式错误，请好好检查");
             e.printStackTrace();
@@ -441,80 +446,81 @@ public class MsIoContainer {
      */
     @SuppressWarnings("unchecked")
     private void addMappingComplex(Object key,Map jsonData) throws ClassNotFoundException,NoSuchMethodException,IllegalAccessException,NoSuchFieldException,UnsupportFormatException{
-        for (Object o : jsonData.entrySet()) {
-            Map.Entry<String, LinkedHashMap<Object, Object>> item = (Map.Entry<String, LinkedHashMap<Object, Object>>) o;
-            LinkedHashMap<String, Information> mappingItem = new LinkedHashMap<>();
-            LinkedHashMap<Object, Object> information = item.getValue();
-            Class pojo = null;
-            //若有该字段，则标识这个映射对象为一个类（配置文件配置的类）,获取后将其移除
-            if(information.containsKey(CLASS_LABEL)){
-                pojo = Class.forName(information.remove(CLASS_LABEL).toString());
-                classCache.put(item.getKey(),pojo);
-            }
-            //网上求证数据项标明顺序正常
-            for (Object egName : information.keySet()) {
-                //复杂Map递归求证
-                if(information.get(egName) instanceof Map){
-                    Object name = ((Map) information.get(egName)).get("name");
-                    if(null == name){
-                        throw new UnsupportFormatException("配置文件映射时内部集egName找不到必须存在的name属性");
+        Class<?> pojo = null;
+        //若有该字段，则标识这个映射对象为一个类（配置文件配置的类）,获取后将其移除
+        if(jsonData.containsKey(CLASS_LABEL)){
+            pojo = Class.forName(jsonData.remove(CLASS_LABEL).toString());
+            classCache.put(key.toString(),pojo);
+        }
+        LinkedHashMap<String,Information> mappingItem = Maps.newLinkedHashMapWithExpectedSize(16);
+        //网上求证数据项标明顺序正常
+        for (Object egName : jsonData.keySet()) {
+            //复杂Map递归求证
+            if(jsonData.get(egName) instanceof Map){
+                Object name = ((Map) jsonData.get(egName)).remove(MAPPING_NAME);
+                if(null == name){
+                    throw new UnsupportFormatException("配置文件映射时内部集egName找不到必须存在的name属性");
+                }
+                Information info = new Information();
+                info.setName(name.toString());
+                //如果存在id项，使用id项进行分析->直接将已经缓存的mapping调入并抛弃原先map中的数据
+                if(((Map) jsonData.get(egName)).containsKey(MAPPING_ID)){
+                    String id = ((Map) jsonData.get(egName)).remove(MAPPING_ID).toString();
+                    LinkedHashMap<String, Information> valueTemp = get(id);
+                    if(null == valueTemp){
+                        throw new RuntimeException(new UnsupportFormatException("未找到对应子映射，请确认是否未定义或者是否位置放置在该映射之前"));
                     }
-                    Information info = new Information();
-                    info.setName(name.toString());
-                    //如果存在id项，使用id项进行分析
-                    if(((Map) information.get(egName)).containsKey("id")){
-                        String id = ((Map) information.get(egName)).get("id").toString();
-                        LinkedHashMap<String, Information> valueTemp = get(id);
-                        if(null == valueTemp){
-                            throw new RuntimeException(new UnsupportFormatException("未找到对应子映射，请确认是否未定义或者是否位置放置在该映射之前"));
-                        }
-                        info.setChildren(valueTemp);
-                        continue;
-                    }
-                    LinkedHashMap<String, Information> value = get(egName.toString());
-                    if(value == null){
-                        addMappingItem(egName.toString(),(LinkedHashMap<Object,Object>) information.get(egName));
-                        value = get(name.toString());
-                    }
-                    info.setChildren(value);
-                    mappingItem.put(egName.toString(),info);
-                    //映射直接获取
+                    info.setChildren(valueTemp);
                     continue;
                 }
-                String cnName = information.get(egName).toString();
-                Information info = new Information();
-                //方法获取
-                int index = StringRegexUtils.checkIsContain(cnName, FUNCTION_SIGN);
-                if(index == -1){
-                    info.setName(cnName.replace("\\$$","$$"));
-                }else{
-                    info.setName(cnName.substring(0,index));
-                    info.setInvokeObject(iTransFunctionContainer);
-                    info.setMethod(containerClass.getDeclaredMethod(cnName.substring(index + 2),Object.class));
+                //尝试获取是否已经缓存了数据，如果获取数据返回null则放入map重新解析
+                LinkedHashMap<String, Information> value = get(egName.toString());
+                if(value == null){
+                    addMappingItem(egName.toString(),(LinkedHashMap<Object,Object>) jsonData.get(egName));
+                    value = get(egName.toString());
                 }
-                if(pojo != null){
-                    Field field = pojo.getDeclaredField(egName.toString());
-                    info.setFieldType(field.getType());
-                }
-                //若实在要使用className作为一个属性传入，进行转义即可
-                if(egName.equals(TRANSLATION_SIGN + CLASS_LABEL)){
-                    mappingItem.put(egName.toString().substring(1),info);
-                }else{
-                    mappingItem.put(egName.toString(),info);
-                }
+                info.setChildren(value);
+                mappingItem.put(egName.toString(),info);
+                //映射直接获取
+                continue;
             }
-            //计算深度
-            int depthLevel = checkDepthLevel(mappingItem, 1);
-            complexMappingCache.put(key.toString(),depthLevel);
-            if(hotDeploySign){
-                temporaryMappingCache.put(key.toString(),mappingItem);
+            String cnName = jsonData.get(egName).toString();
+            Information info = new Information();
+            //方法获取
+            int index = StringRegexUtils.checkIsContain(cnName, FUNCTION_SIGN);
+            if(index == -1){
+                //将数据从转义恢复
+                info.setName(cnName.replace("\\$$","$$"));
             }else{
-                Class clazz = classCache.get(key.toString());
-                if(mappingCache.containsKey(key.toString())){
-                    throw new IllegalAccessException("领域模型指向id重复，重复id：" + key.toString() +
-                            (clazz == null ? ",请检查配置文件配置项是否重复：" : ("pojo类重复，类名为:" + clazz.getName())));
-                }
+                info.setName(cnName.substring(0,index));
+                info.setInvokeObject(iTransFunctionContainer);
+                info.setMethod(containerClass.getDeclaredMethod(cnName.substring(index + 2),Object.class));
             }
+            if(pojo != null){
+                Field field = pojo.getDeclaredField(egName.toString());
+                info.setFieldType(field.getType());
+            }
+            //将转义的字段删除
+            if(egName.equals(TRANSLATION_SIGN + CLASS_LABEL)
+                ||egName.equals(TRANSLATION_SIGN + MAPPING_ID)
+                ||egName.equals(TRANSLATION_SIGN + MAPPING_NAME)){
+                mappingItem.put(egName.toString().substring(1),info);
+            }else{
+                mappingItem.put(egName.toString(),info);
+            }
+        }
+        //计算深度
+        int depthLevel = checkDepthLevel(mappingItem, 1);
+        complexMappingCache.put(key.toString(),depthLevel);
+        if(hotDeploySign){
+            temporaryMappingCache.put(key.toString(),mappingItem);
+        }else{
+            Class clazz = classCache.get(key.toString());
+            if(mappingCache.containsKey(key.toString())){
+                throw new IllegalAccessException("领域模型指向id重复，重复id：" + key.toString() +
+                        (clazz == null ? ",请检查配置文件配置项是否重复：" : ("pojo类重复，类名为:" + clazz.getName())));
+            }
+            mappingCache.put(key.toString(),mappingItem);
         }
     }
 
@@ -525,6 +531,7 @@ public class MsIoContainer {
             throws ClassNotFoundException, NoSuchMethodException, NoSuchFieldException, IllegalAccessException,UnsupportFormatException {
         if(information.values().stream().anyMatch(obj -> obj instanceof Map)){
             addMappingComplex(key,information);
+            return;
         }
         LinkedHashMap<String, Information> mappingItem = new LinkedHashMap<>();
         Class pojo = null;
@@ -565,6 +572,7 @@ public class MsIoContainer {
                 throw new IllegalAccessException("领域模型指向id重复，重复id：" + key +
                         (clazz == null ? ",请检查配置文件配置项是否重复：" : ("pojo类重复，类名为:" + clazz.getName())));
             }
+            mappingCache.put(key,mappingItem);
         }
     }
 

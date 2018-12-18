@@ -2,6 +2,7 @@ package com.hellozq.msio.bean.common;
 
 import com.hellozq.msio.anno.MsReturnTranslator;
 import com.hellozq.msio.unit.ExcelFactory;
+import com.hellozq.msio.unit.IExcelBeanReverse;
 import com.hellozq.msio.utils.MsELUtils;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.async.WebAsyncManager;
@@ -88,6 +89,7 @@ public class MsIoServlet extends DispatcherServlet {
 
                 // Actually invoke the handler.
                 // transport to excel
+                //------------------------------//
                 Method invokeMethod = ((HandlerMethod) mappedHandler.getHandler()).getMethod();
                 MsReturnTranslator translator = invokeMethod.getDeclaredAnnotation(MsReturnTranslator.class);
                 Object requestResult = servletAssessUtils.getRequestResult(request,response, mappedHandler);
@@ -99,11 +101,18 @@ public class MsIoServlet extends DispatcherServlet {
                     response.setContentType("application/vnd.ms-excel;charset=utf-8");
                     response.setCharacterEncoding("utf-8");
                     response.setHeader("Content-disposition", "attachment;filename=download.xlsx");
-                    ExcelFactory.SimpleExcelBeanReverse ins = ExcelFactory.getSimpleExcelBeanReverseInstance((List)requestResult, (e, item) -> item);
-                    ins.getWorkbook().write(response.getOutputStream());
+                    if(!translator.isComplex()) {
+                        IExcelBeanReverse ins = ExcelFactory.getSimpleExcelBeanReverseInstance((List) requestResult, (e, item) -> item);
+                        ins.getWorkbook().write(response.getOutputStream());
+                    }else{
+                        IExcelBeanReverse ins = ExcelFactory.getComplexExcelBeanReverseInstance(translator.id()[0],(List)requestResult,(e, item) -> item);
+                        ins.getWorkbook().write(response.getOutputStream());
+                    }
                 }else {
                     mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
                 }
+                //------------------------------//
+                //transport end//
 
                 if (asyncManager.isConcurrentHandlingStarted()) {
                     return;

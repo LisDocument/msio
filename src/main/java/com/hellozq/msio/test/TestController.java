@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,14 @@ public class TestController {
         };
     }
 
+
+    @MsReturnTranslator(isComplex = true,id = "2")
+    @RequestMapping("/tcomplex")
+    public List test3(){
+        return new ArrayList<Map>(){{
+            add(new HashMap());
+        }};
+    }
 
     @MsReturnTranslator("getPage()#getList($int$5,$int$150,wowowo,$double$1.41)")
     @RequestMapping("/t2")

@@ -21,5 +21,17 @@ public @interface MsReturnTranslator {
      * 作为EL表达式，将一些类型不正确的参数改正为正常List数据，例如Page变为List，或者返回是Map，仅需要部分数据
      * @return 注释在方法上，协同RequestMapping使用
      */
-    String value();
+    String value() default "";
+
+    /**
+     * 标识Map对应的映射id，标记后会自动使用get方法获取，加快效率
+     * @return id集
+     */
+    String[] id() default "";
+
+    /**
+     * 是否启用复杂解析器解析为复杂excel
+     * @return 默认为不启动
+     */
+    boolean isComplex() default false;
 }
