@@ -797,7 +797,7 @@ public class ExcelFactory {
             for (String key : mapping.keySet()) {
                 MsIoContainer.Information information = mapping.get(key);
                 //单项最低
-                int itemCount = mapComplexTitle(information.getChildren(), depthLevel, maxLevel + 1, index + 1, sheet);
+                int itemCount = mapComplexTitle(information.getChildren(), depthLevel, maxLevel + 1, index, sheet);
                 //无子项
                 if(1 == itemCount){
                     //合并叶子单元格
@@ -807,7 +807,7 @@ public class ExcelFactory {
                     count ++;
                 }else{
                     //合并双亲单元格
-                    MsUtils.mergeAndCenteredCell(sheet,information.getName(),maxLevel,maxLevel,index,index + itemCount,true,true);
+                    MsUtils.mergeAndCenteredCell(sheet,information.getName(),maxLevel,maxLevel,index,index + itemCount-1,true,true);
                     index += itemCount;
                     count += itemCount;
                 }

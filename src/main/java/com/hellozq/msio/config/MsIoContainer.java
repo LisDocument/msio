@@ -209,6 +209,28 @@ public class MsIoContainer {
     }
 
     /**
+     * 内部初始化使用的提取映射的方法，与热启动无关
+     * @param key 建
+     * @return 定向格式
+     */
+    private LinkedHashMap<String,Information> innerGet(String key){
+        return null == temporaryMappingCache.get(key) ? mappingCache.get(key) : temporaryMappingCache.get(key);
+    }
+
+    /**
+     * 内部初始化根据类的Class文件获取映射
+     * @param key Class对象
+     * @return 返回映射
+     */
+    private LinkedHashMap<String,Information> innerGet(Class<?> key){
+        MsOperator operator = key.getAnnotation(MsOperator.class);
+        if(operator == null){
+            return new LinkedHashMap<>();
+        }
+        return innerGet(operator.value());
+    }
+
+    /**
      * 从临时缓存池提取数据（热启动的时使用）
      * @param key 键
      * @return 定向格式
@@ -271,7 +293,6 @@ public class MsIoContainer {
         try {
             LinkedHashMap linkedHashMap = CommonBean.OBJECT_MAPPER.readValue(jsonMapper, LinkedHashMap.class);
             addMapping(linkedHashMap);
-            log.info("json配置成功");
         } catch (IOException e) {
             log.error("配置文件格式错误，请好好检查");
             e.printStackTrace();
@@ -287,15 +308,15 @@ public class MsIoContainer {
      * @return 实际最深的层数
      */
     private int checkDepthLevel(LinkedHashMap<String,Information> data,int i){
-        int result = 0;
+        int fuc = 0;
         for (Information value : data.values()) {
             if(null != value.getChildren() && !value.getChildren().isEmpty()){
                 //仅仅取每个元素的深度，会将每个元素的最大深度得出
-                result = checkDepthLevel(value.getChildren(),++i);
+                int fucTemp = checkDepthLevel(value.getChildren(),0) + 1;
+                fuc = fucTemp > fuc ? fucTemp : fuc;
             }
-            i = result > i ? result : i;
         }
-        return i;
+        return i + fuc;
     }
 
     /**
@@ -326,10 +347,10 @@ public class MsIoContainer {
             Class<?> type = field.getType();
             MsOperator msOperator = type.getDeclaredAnnotation(MsOperator.class);
             if(null != msOperator){
-                LinkedHashMap<String, Information> value = get(type);
+                LinkedHashMap<String, Information> value = innerGet(type);
                 if(null == value || value.isEmpty()){
                     addMapping(type);
-                    value = get(type);
+                    value = innerGet(type);
                 }
                 Information information = new Information();
                 information.setFieldType(type);
@@ -466,18 +487,19 @@ public class MsIoContainer {
                 //如果存在id项，使用id项进行分析->直接将已经缓存的mapping调入并抛弃原先map中的数据
                 if(((Map) jsonData.get(egName)).containsKey(MAPPING_ID)){
                     String id = ((Map) jsonData.get(egName)).remove(MAPPING_ID).toString();
-                    LinkedHashMap<String, Information> valueTemp = get(id);
+                    LinkedHashMap<String, Information> valueTemp = innerGet(id);
                     if(null == valueTemp){
                         throw new RuntimeException(new UnsupportFormatException("未找到对应子映射，请确认是否未定义或者是否位置放置在该映射之前"));
                     }
                     info.setChildren(valueTemp);
+                    mappingItem.put(egName.toString(),info);
                     continue;
                 }
                 //尝试获取是否已经缓存了数据，如果获取数据返回null则放入map重新解析
-                LinkedHashMap<String, Information> value = get(egName.toString());
+                LinkedHashMap<String, Information> value = innerGet(egName.toString());
                 if(value == null){
                     addMappingItem(egName.toString(),(LinkedHashMap<Object,Object>) jsonData.get(egName));
-                    value = get(egName.toString());
+                    value = innerGet(egName.toString());
                 }
                 info.setChildren(value);
                 mappingItem.put(egName.toString(),info);
@@ -652,6 +674,19 @@ public class MsIoContainer {
 
         private void setName(String name) {
             this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return "Information{" +
+                    "name='" + name + '\'' +
+                    ", method=" + method +
+                    ", invokeObject=" + invokeObject +
+                    ", operator=" + operator +
+                    ", automatic=" + automatic +
+                    ", fieldType=" + fieldType +
+                    ", children=" + children +
+                    '}';
         }
 
         @Override

@@ -65,6 +65,11 @@ public class MsUtils {
      */
     public static void mergeAndCenteredCell(Sheet sheet,String value, int startRowNo, int endRowNo,
                                                 int startColumnNo, int endColumnNo,boolean isCover,boolean isTitle){
+        //处理单个单元格的情况，但是为了统一使用该方法
+        if(startColumnNo == endColumnNo && startRowNo == endRowNo){
+            createOrGetCell(sheet,startRowNo,startColumnNo).setCellValue(value);
+            return;
+        }
         StringBuilder oldValue = new StringBuilder();
         for (int i = startRowNo; i <= endRowNo; i++) {
             for (int j = startColumnNo; j <= endColumnNo; j++) {
