@@ -409,8 +409,7 @@ public class ExcelFactory {
     public static IExcelBeanReverse getSimpleExcelBeanReverseInstance(Map<Integer,List> data,boolean asycSign,
                                                                            boolean localCache,int localCacheSize, ExcelDealType type,
                                                                            OutExceptionHandler handler,int pageSize){
-        SimpleExcelBeanReverse bean = new SimpleExcelBeanReverse(data, asycSign, localCache, localCacheSize, type, handler, pageSize);
-        return bean;
+        return new SimpleExcelBeanReverse(data, asycSign, localCache, localCacheSize, type, handler, pageSize);
     }
 
     /**
@@ -457,7 +456,7 @@ public class ExcelFactory {
         /**
          * 用于处理中途错误的问题
          */
-        private OutExceptionHandler handler = null;
+        private OutExceptionHandler handler;
         /**
          * 开启本地缓存后，缓存的数量
          */
@@ -581,7 +580,7 @@ public class ExcelFactory {
                     for (String keyTemp : keySet) {
                         Object dataItem = ((Map) map).get(keyTemp);
                         MsIoContainer.Information action = mapping.get(keyTemp);
-                        Object invoke = null;
+                        Object invoke;
                         Cell cellTemp = rowTemp.createCell(cellIndex ++);
                         try {
                             if(action.getMethod() != null) {
@@ -622,7 +621,7 @@ public class ExcelFactory {
                         Object value = ClassUtils.getFieldValue(keyTemp, obj, clazz);
                         MsIoContainer.Information action = mapping.get(keyTemp);
                         Cell cellTemp = dataRow.createCell(dataRow.getLastCellNum() + 1);
-                        Object invoke = null;
+                        Object invoke;
                         try {
                             invoke = action.getMethod().invoke(action.getInvokeObject(), value);
                         }catch (IllegalAccessException | InvocationTargetException e){
@@ -682,7 +681,7 @@ public class ExcelFactory {
         /**
          * 用于处理中途错误的问题
          */
-        private OutExceptionHandler handler = null;
+        private OutExceptionHandler handler;
         /**
          * 开启本地缓存后，缓存的数量
          */
@@ -705,6 +704,11 @@ public class ExcelFactory {
         private ExcelDealType type;
 
         private MsIoContainer msIoContainer;
+
+        /**
+         * 标题临时记录
+         */
+        List<String> titles = Lists.newArrayList();
 
         @Override
         public Workbook getWorkbook(){
@@ -775,8 +779,9 @@ public class ExcelFactory {
                 LinkedHashMap<String, MsIoContainer.Information> mapping = msIoContainer.get(key);
                 //编写标题
                 mapComplexTitle(mapping,depthLevel,0,0,sheet);
+                //开始填入内容，map无层级关系，以最低级得叶子节点为主
             }else{
-
+                // TODO: 2018/12/20
             }
         }
 
@@ -790,6 +795,7 @@ public class ExcelFactory {
          * @return 数据
          */
         private int mapComplexTitle(LinkedHashMap<String, MsIoContainer.Information> mapping, int depthLevel,int maxLevel,int index, Sheet sheet){
+            titles.clear();
             if(null == mapping || mapping.isEmpty()){
                 return 1;
             }
@@ -805,6 +811,7 @@ public class ExcelFactory {
                     //指针下滑计数
                     index += 1;
                     count ++;
+                    titles.add(key);
                 }else{
                     //合并双亲单元格
                     MsUtils.mergeAndCenteredCell(sheet,information.getName(),maxLevel,maxLevel,index,index + itemCount-1,true,true);
