@@ -167,6 +167,11 @@ public class MsIoContainer {
         return complexMappingCache.getOrDefault(key,1);
     }
 
+    public int getDepthLevel(Class<?> key){
+        MsOperator msOperator = key.getDeclaredAnnotation(MsOperator.class);
+        return complexMappingCache.get(msOperator.value());
+    }
+
     /**
      * 根据key获取其缓存的的类型，如果未找到，返回Map
      * @param key 索引值
