@@ -1,8 +1,6 @@
 package com.hellozq.msio.utils;
 
 
-import lombok.NonNull;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -23,7 +21,7 @@ public class ThreadUtils {
                 , new LinkedBlockingQueue<>(50), new ThreadFactory() {
             AtomicInteger count = new AtomicInteger(0);
             @Override
-            public Thread newThread(@NonNull Runnable r) {
+            public Thread newThread(Runnable r) {
                 return new Thread("异步处理工具单元-"+count.getAndAdd(1));
             }
         });

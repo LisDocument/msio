@@ -4,7 +4,6 @@ import com.alibaba.druid.util.StringUtils;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.hellozq.msio.bean.others.FileInterceptItem;
-import lombok.NonNull;
 
 import java.util.Collection;
 import java.util.Comparator;
@@ -33,7 +32,7 @@ public abstract class BaseInterceptConstruction {
      * @param fileInterceptItem 拦截选项
      * @return  返回
      */
-    public BaseInterceptConstruction add(String path,@NonNull FileInterceptItem fileInterceptItem){
+    public BaseInterceptConstruction add(String path,FileInterceptItem fileInterceptItem){
 
         if(StringUtils.isEmpty(path)){
             filterMapping.put("/**",fileInterceptItem);
@@ -52,7 +51,7 @@ public abstract class BaseInterceptConstruction {
      * @param path 监听路径
      * @return 排序后返回的过滤情况
      */
-    protected List<FileInterceptItem> getFilterList(@NonNull String path){
+    protected List<FileInterceptItem> getFilterList(String path){
 
         Collection<FileInterceptItem> filters = filterMapping.get(path);
         return filters.stream().sorted(Comparator.comparing(FileInterceptItem::getOrderNo)).collect(Collectors.toList());

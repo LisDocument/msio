@@ -2,7 +2,6 @@ package com.hellozq.msio.test;
 
 import com.hellozq.msio.anno.MsItem;
 import com.hellozq.msio.anno.MsOperator;
-import lombok.Data;
 
 /**
  * Created with IntelliJ IDEA.
@@ -13,10 +12,27 @@ import lombok.Data;
  * To change this template use File | Settings | File Templates.
  */
 @MsOperator("user")
-@Data
 public class User {
     @MsItem("名称")
     private String name;
     @MsItem("年龄")
-    private int age;
+    private Integer age;
+
+    public String getName() {
+        return name;
+    }
+
+    public User setName(String name) {
+        this.name = name;
+        return this;
+    }
+
+    public Integer getAge() {
+        return age;
+    }
+
+    public User setAge(Integer age) {
+        this.age = age;
+        return this;
+    }
 }

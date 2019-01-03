@@ -2,7 +2,6 @@ package com.hellozq.msio.test;
 
 import com.hellozq.msio.anno.MsItem;
 import com.hellozq.msio.anno.MsOperator;
-import lombok.Data;
 
 /**
  * Created with IntelliJ IDEA.
@@ -12,7 +11,6 @@ import lombok.Data;
  * time: 10:11
  * To change this template use File | Settings | File Templates.
  */
-@Data
 @MsOperator(value = "flexUser",subClazz = User.class)
 public class FlexUser {
 
@@ -24,4 +22,31 @@ public class FlexUser {
 
     @MsItem("性别")
     private String sex;
+
+    public User getUser() {
+        return user;
+    }
+
+    public FlexUser setUser(User user) {
+        this.user = user;
+        return this;
+    }
+
+    public String getTelPhone() {
+        return telPhone;
+    }
+
+    public FlexUser setTelPhone(String telPhone) {
+        this.telPhone = telPhone;
+        return this;
+    }
+
+    public String getSex() {
+        return sex;
+    }
+
+    public FlexUser setSex(String sex) {
+        this.sex = sex;
+        return this;
+    }
 }

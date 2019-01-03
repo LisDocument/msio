@@ -1,7 +1,5 @@
 package com.hellozq.msio.test;
 
-import lombok.Data;
-
 /**
  * Created with IntelliJ IDEA.
  *
@@ -10,10 +8,18 @@ import lombok.Data;
  * time: 14:13
  * To change this template use File | Settings | File Templates.
  */
-@Data
 public class Test {
 
     private String xhz;
 
     private String dhz;
+
+    public String getXhz() {
+        return xhz;
+    }
+
+    public Test setXhz(String xhz) {
+        this.xhz = xhz;
+        return this;
+    }
 }

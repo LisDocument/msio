@@ -3,7 +3,6 @@ package com.hellozq.msio.bean.db;
 import com.hellozq.msio.anno.MsItem;
 import com.hellozq.msio.anno.MsOperator;
 import com.hellozq.msio.bean.common.impl.DateOperator;
-import lombok.Data;
 
 import java.util.Date;
 
@@ -13,7 +12,6 @@ import java.util.Date;
  */
 @SuppressWarnings("unused")
 @MsOperator(value = "forwardingRecode")
-@Data
 public class ForwardingRecode {
 
     /**

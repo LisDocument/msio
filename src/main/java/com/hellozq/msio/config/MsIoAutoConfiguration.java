@@ -1,18 +1,17 @@
 package com.hellozq.msio.config;
 
 import com.alibaba.druid.pool.DruidDataSource;
-import com.alibaba.druid.support.ibatis.DruidDataSourceFactory;
 import com.hellozq.msio.bean.common.IFormatConversion;
 import com.hellozq.msio.bean.common.ITransFunctionContainer;
 import com.hellozq.msio.bean.common.MsIoServlet;
 import com.hellozq.msio.config.derivative.BaseInterceptConstruction;
-import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,11 +25,12 @@ import javax.sql.DataSource;
  * 协同总配置类，框架入口
  */
 @Configuration
-@Slf4j
 class MsIoAutoConfiguration {
 
     @Value("${spring.micro.listen.url:/upload/*}")
     private String listenerUrl;
+
+    private final static Log log = LogFactory.getLog(MsIoAutoConfiguration.class);
 
     /**
      * 导出容器初始化

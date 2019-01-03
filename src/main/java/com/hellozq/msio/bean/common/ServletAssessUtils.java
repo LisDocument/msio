@@ -58,7 +58,6 @@ final class ServletAssessUtils{
         HandlerMethod handlerMethod = (HandlerMethod) handle.getHandler();
         try {
             Object[] methodArgumentValues = getMethodArgumentValues(webRequest, handlerMethod);
-            System.out.println(Arrays.asList(methodArgumentValues));
             Object invoke = handlerMethod.getMethod().invoke(handlerMethod.getBean(), methodArgumentValues);
             return (T)invoke;
         }catch (Exception e){

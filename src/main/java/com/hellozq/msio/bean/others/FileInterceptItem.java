@@ -1,7 +1,5 @@
 package com.hellozq.msio.bean.others;
 
-import lombok.Data;
-import lombok.experimental.Accessors;
 import org.apache.commons.fileupload.FileItem;
 import org.springframework.util.StringUtils;
 
@@ -12,8 +10,6 @@ import java.util.regex.Pattern;
  * @author bin
  */
 @SuppressWarnings("unused")
-@Data
-@Accessors(chain = true)
 public class FileInterceptItem {
 
     /**
@@ -61,6 +57,60 @@ public class FileInterceptItem {
     private final static String TXT = "txt";
 
     private final static String PIC = "jpg";
+
+    public String getFileType() {
+        return fileType;
+    }
+
+    public FileInterceptItem setFileType(String fileType) {
+        this.fileType = fileType;
+        return this;
+    }
+
+    public Long getFileMaxSize() {
+        return fileMaxSize;
+    }
+
+    public FileInterceptItem setFileMaxSize(Long fileMaxSize) {
+        this.fileMaxSize = fileMaxSize;
+        return this;
+    }
+
+    public Long getFileMinSize() {
+        return fileMinSize;
+    }
+
+    public FileInterceptItem setFileMinSize(Long fileMinSize) {
+        this.fileMinSize = fileMinSize;
+        return this;
+    }
+
+    public int getOrderNo() {
+        return orderNo;
+    }
+
+    public FileInterceptItem setOrderNo(int orderNo) {
+        this.orderNo = orderNo;
+        return this;
+    }
+
+    public FileInterceptCustomize<FileItem> getFileInterceptCustomize() {
+        return fileInterceptCustomize;
+    }
+
+    public FileInterceptItem setFileInterceptCustomize(FileInterceptCustomize<FileItem> fileInterceptCustomize) {
+        this.fileInterceptCustomize = fileInterceptCustomize;
+        return this;
+    }
+
+    public String getRegexName() {
+        return regexName;
+    }
+
+    public FileInterceptItem setRegexName(String regexName) {
+        this.regexName = regexName;
+        return this;
+    }
 
     public boolean filter(FileItem file){
         String name = file.getName();

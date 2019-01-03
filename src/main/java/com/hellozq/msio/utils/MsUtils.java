@@ -1,16 +1,27 @@
 package com.hellozq.msio.utils;
 
 import com.hellozq.msio.config.MsIoContainer;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.poi.hssf.usermodel.HSSFDateUtil;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.UnsupportedEncodingException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.List;
 
 /**
  * @author bin
@@ -18,6 +29,8 @@ import java.util.*;
  */
 @SuppressWarnings("unused")
 public class MsUtils {
+
+    public static final Log log = LogFactory.getLog(MsUtils.class);
 
     /**
      * 映射关系转换方法
@@ -30,6 +43,73 @@ public class MsUtils {
         return result;
     }
 
+    public static Workbook transWorkbook(File file){
+        Workbook workbook;
+        try {
+            workbook = new XSSFWorkbook(new FileInputStream(file));
+        }catch (Exception e){
+            try {
+                workbook = new HSSFWorkbook(new FileInputStream(file));
+            }catch (Exception e1){
+                throw new IllegalArgumentException("文件不存在或格式不匹配，检查后重试",e1);
+            }
+        }
+        return workbook;
+    }
+
+    /**
+     * 整理格式
+     * @param sheet1 等待整理的sheet
+     * @param columnSize 总列数
+     * @param rowSize 总行数
+     * @throws UnsupportedEncodingException x
+     */
+    public static void sheetFix(Sheet sheet1, int columnSize, int rowSize) throws UnsupportedEncodingException {
+        // 获取当前列的宽度，然后对比本列的长度，取最大值
+        for (int columnNum = 0; columnNum < columnSize; columnNum++) {
+            int columnWidth = sheet1.getColumnWidth(columnNum) / 256;
+            for (int rowNum = 0; rowNum <= rowSize; rowNum ++) {
+                Row currentRow;
+                // 当前行未被使用过
+                if (sheet1.getRow(rowNum) == null) {
+                    continue;
+                } else {
+                    currentRow = sheet1.getRow(rowNum);
+                }
+
+                if (currentRow.getCell(columnNum) != null) {
+                    Cell currentCell = currentRow.getCell(columnNum);
+                    int length = currentCell.toString().getBytes("GBK").length;
+                    if (columnWidth < length + 1) {
+                        columnWidth = length + 1;
+                    }
+                    if (columnWidth > 256) {
+                        columnWidth = 80;
+                    }
+                }
+            }
+            sheet1.setColumnWidth(columnNum, (columnWidth > 100 ? 80 * 256 : (columnWidth) * 256));
+        }
+    }
+
+    /**
+     * 将文件转换为Workbook示例
+     * @param file 输入链接
+     */
+
+    public static Workbook transWorkbook(MultipartFile file){
+        Workbook workbook;
+        try {
+            workbook = new XSSFWorkbook(file.getInputStream());
+        }catch (Exception e){
+            try{
+                workbook = new HSSFWorkbook(file.getInputStream());
+            }catch (Exception e1){
+                throw new IllegalArgumentException("文件格式不符合，无法加入",e1);
+            }
+        }
+        return workbook;
+    }
     /**
      * 判断指定的单元格是否是合并单元格
      * @param row 行下标

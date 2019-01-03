@@ -6,12 +6,13 @@ import com.hellozq.msio.anno.*;
 import com.hellozq.msio.bean.common.CommonBean;
 import com.hellozq.msio.bean.common.ITransFunctionContainer;
 import com.hellozq.msio.bean.common.Operator;
+import com.hellozq.msio.bean.common.impl.DefaultOperator;
 import com.hellozq.msio.exception.UnsupportFormatException;
 import com.hellozq.msio.utils.ClassUtils;
 import com.hellozq.msio.utils.StringRegexUtils;
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.system.ApplicationHome;
 import org.springframework.util.StringUtils;
@@ -30,7 +31,6 @@ import java.util.stream.Collectors;
  * MsIo上下文全文容器，包含配置项缓冲项等
  */
 @SuppressWarnings("unused")
-@Slf4j
 public class MsIoContainer {
 
     @Value("${spring.msIo.isHotCache:true}")
@@ -39,6 +39,8 @@ public class MsIoContainer {
     private Class<? extends ITransFunctionContainer> containerClass;
 
     private ITransFunctionContainer iTransFunctionContainer;
+
+    private final static Log log = LogFactory.getLog(MsIoContainer.class);
 
     private final static String CLASS_LABEL = "className";
 
@@ -518,6 +520,7 @@ public class MsIoContainer {
             if(index == -1){
                 //将数据从转义恢复
                 info.setName(cnName.replace("\\$$","$$"));
+                info.setOperator(newInstance(DefaultOperator.class));
             }else{
                 info.setName(cnName.substring(0,index));
                 info.setInvokeObject(iTransFunctionContainer);
@@ -575,6 +578,7 @@ public class MsIoContainer {
             int index = StringRegexUtils.checkIsContain(cnName, FUNCTION_SIGN);
             if(index == -1){
                 info.setName(cnName.replace("\\$$","$$"));
+                info.setOperator(newInstance(DefaultOperator.class));
             }else{
                 info.setName(cnName.substring(0,index));
                 info.setInvokeObject(iTransFunctionContainer);

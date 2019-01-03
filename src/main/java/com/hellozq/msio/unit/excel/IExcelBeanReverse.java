@@ -1,6 +1,9 @@
-package com.hellozq.msio.unit;
+package com.hellozq.msio.unit.excel;
 
 import org.apache.poi.ss.usermodel.Workbook;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created with IntelliJ IDEA.
@@ -17,6 +20,5 @@ public interface IExcelBeanReverse {
      * @return workbook集
      */
     Workbook getWorkbook();
-
 
 }

@@ -67,7 +67,6 @@
     <orderEntry type="library" name="Maven: stax:stax-api:1.0.1" level="project" />
     <orderEntry type="library" name="Maven: com.esotericsoftware:reflectasm:1.11.0" level="project" />
     <orderEntry type="library" name="Maven: org.ow2.asm:asm:5.0.3" level="project" />
-    <orderEntry type="library" name="Maven: org.projectlombok:lombok:1.16.22" level="project" />
     <orderEntry type="library" name="Maven: com.google.guava:guava:19.0" level="project" />
     <orderEntry type="library" name="Maven: org.springframework.boot:spring-boot-starter-test:2.0.3.RELEASE" level="project" />
     <orderEntry type="library" name="Maven: org.springframework.boot:spring-boot-test:2.0.3.RELEASE" level="project" />
