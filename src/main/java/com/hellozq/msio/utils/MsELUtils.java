@@ -1,10 +1,15 @@
 package com.hellozq.msio.utils;
 
 import com.hellozq.msio.exception.MsELUnsupportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import sun.rmi.runtime.Log;
 
 import java.util.LinkedList;
 
 public class MsELUtils {
+
+    private static final Logger log = LoggerFactory.getLogger(MsELUtils.class);
 
     //方法调用
     public static final String FUNC_SIGN = "#";
@@ -24,14 +29,19 @@ public class MsELUtils {
             }
         }
         Object result = obj;
-        for (String methodName: methodStack) {
-            result = valueCalculator(result,methodName);
+        try {
+            for (String methodName: methodStack) {
+                result = valueCalculator(result,methodName);
+            }
+        }catch (NoSuchMethodException e){
+            log.error("EL表达式调用方法方法失败",e);
         }
+
 
         return result;
     }
 
-    private static Object valueCalculator(Object obj,String methodInfo) throws MsELUnsupportException{
+    private static Object valueCalculator(Object obj,String methodInfo) throws MsELUnsupportException, NoSuchMethodException {
         String[] split = methodInfo.split("\\(");
         if(split.length != 2){
             throw new MsELUnsupportException("EL表达式格式异常");

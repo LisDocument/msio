@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.constraints.NotNull;
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,13 +39,42 @@ public class ExcelFactory {
     }
 
     /**
+     * 自助excel解析结果
+     * @param file 文件流
+     * @return 新的简单excel实例
+     */
+    public static IExcelBean getSingleSimpleInstance(@NotNull MultipartFile file){
+        return new SimpleExcelBean(file,true);
+    }
+
+    /**
+     * 自助excel解析结果
+     * @param file 文件流
+     * @return 新的简单excel实例
+     */
+    public static IExcelBean getSingleSimpleInstance(@NotNull File file){
+        return new SimpleExcelBean(file,true);
+    }
+
+    /**
      * 获得单页的excel解析结果
      * @param id 指定映射的id，如果为空的话自动寻找
      * @param file 文件流
      * @param pageNo 页码,默认为0
      * @return 新的简单excel实例
      */
-    public static SimpleExcelBean getSingleSimpleInstance(String id, @NotNull MultipartFile file,Integer pageNo){
+    public static IExcelBean getSingleSimpleInstance(String id, @NotNull MultipartFile file,Integer pageNo){
+        return new SimpleExcelBean(id,file,pageNo == null ? 0 : pageNo);
+    }
+
+    /**
+     * 获得单页的excel解析结果
+     * @param id 指定映射的id，如果为空的话自动寻找
+     * @param file 文件流
+     * @param pageNo 页码,默认为0
+     * @return 新的简单excel实例
+     */
+    public static IExcelBean getSingleSimpleInstance(String id, @NotNull File file,Integer pageNo){
         return new SimpleExcelBean(id,file,pageNo == null ? 0 : pageNo);
     }
 
@@ -55,7 +85,21 @@ public class ExcelFactory {
      * @param isChangeClass 是否自动加载映射
      * @return 新的实例
      */
-    public static SimpleExcelBean getMultipleSimpleInstance(List<String> ids,@NotNull MultipartFile file,boolean isChangeClass){
+    public static IExcelBean getMultipleSimpleInstance(List<String> ids,@NotNull MultipartFile file,boolean isChangeClass){
+        if(ids != null && !ids.isEmpty()){
+            return new SimpleExcelBean(ids,file,isChangeClass);
+        }
+        return new SimpleExcelBean(file,isChangeClass);
+    }
+
+    /**
+     * 复数页的Excel解析结果
+     * @param ids 单页id集合，会根据id索引每页，保证长度和页数一致，若不确定id，可设置isChangeClass为true，自动查询索引，若为false，且那个位置的元素为null，则跳过该数据
+     * @param file 文件流
+     * @param isChangeClass 是否自动加载映射
+     * @return 新的实例
+     */
+    public static IExcelBean getMultipleSimpleInstance(List<String> ids,@NotNull File file,boolean isChangeClass){
         if(ids != null && !ids.isEmpty()){
             return new SimpleExcelBean(ids,file,isChangeClass);
         }

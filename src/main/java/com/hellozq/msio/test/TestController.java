@@ -2,10 +2,12 @@ package com.hellozq.msio.test;
 
 import com.google.common.collect.Lists;
 import com.hellozq.msio.anno.MsReturnTranslator;
+import com.hellozq.msio.unit.excel.ExcelFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 
@@ -25,6 +27,21 @@ public class TestController {
         };
     }
 
+//    @RequestMapping("/t2")
+//    public List<Map> test2(String title,String title2){
+//        return new ArrayList<Map>(){{
+//            add(new HashMap(){{
+//                put("name","李");
+//                put("age","18");
+//            }});
+//        }};
+//    }
+
+    @RequestMapping("/in")
+    public void test2(MultipartFile file){
+        List data = ExcelFactory.getSingleSimpleInstance(file).getData(0);
+        System.out.println(data);
+    }
 
     @MsReturnTranslator(isComplex = true,id = "2")
     @RequestMapping("/tcomplex")

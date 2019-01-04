@@ -4,6 +4,7 @@ import com.alibaba.druid.pool.DruidDataSource;
 import com.hellozq.msio.bean.common.IFormatConversion;
 import com.hellozq.msio.bean.common.ITransFunctionContainer;
 import com.hellozq.msio.bean.common.MsIoServlet;
+import com.hellozq.msio.bean.common.impl.DefaultFormatConversion;
 import com.hellozq.msio.config.derivative.BaseInterceptConstruction;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -49,8 +50,7 @@ class MsIoAutoConfiguration {
     @ConditionalOnMissingBean(IFormatConversion.class)
     @Bean
     public IFormatConversion formatConversion(){
-        return new IFormatConversion() {
-        };
+        return new DefaultFormatConversion();
     }
 
     /**

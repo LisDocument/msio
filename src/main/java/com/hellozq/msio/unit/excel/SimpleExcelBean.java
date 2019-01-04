@@ -27,6 +27,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.constraints.NotNull;
+import java.io.File;
 import java.util.*;
 
 /**
@@ -37,14 +38,10 @@ import java.util.*;
  * time: 15:32
  * To change this template use File | Settings | File Templates.
  */
-public final class SimpleExcelBean implements IExcelBean {
+public final class SimpleExcelBean extends BaseExcelBean {
 
     private static final Logger log = LoggerFactory.getLogger(SimpleExcelBean.class);
 
-    /**
-     * 是否需要自动翻页
-     */
-    private boolean isTuring = true;
     /**
      * 是否根据自动更新Class
      */
@@ -56,34 +53,19 @@ public final class SimpleExcelBean implements IExcelBean {
 
     private String id;
 
-    private Workbook workbook;
-
-    private Map<Integer, List> dataCache;
-
-    private MsIoContainer msIoContainer;
-
-    private IFormatConversion formatConversion;
-
-    /**
-     * 获取该页的数据
-     * @param pageIndex 页码
-     * @return 数据
-     */
-    @Override
-    public List getData(Integer pageIndex){
-        return dataCache.getOrDefault(pageIndex,new ArrayList());
+    private SimpleExcelBean(@NotNull MultipartFile file){
+        super(file,true);
     }
 
-    SimpleExcelBean(@NotNull MultipartFile file){
-        this.workbook = MsUtils.transWorkbook(file);
-        this.msIoContainer = SpringUtils.getBean(MsIoContainer.class);
-        this.formatConversion = SpringUtils.getBean(IFormatConversion.class);
+    private SimpleExcelBean(@NotNull File file){
+        super(file,true);
     }
 
     /**
      * 单页初始化
      * @param id 指派导出类型，为null则自行查询
      * @param file 文件流
+     * @param pageIndex 单页码，页码
      */
     SimpleExcelBean(String id, @NotNull MultipartFile file,@NotNull Integer pageIndex){
         this(file);
@@ -94,6 +76,28 @@ public final class SimpleExcelBean implements IExcelBean {
             this.id = id;
             this.clazz = msIoContainer.getClazz(id);
             this.isChangeClass =  false;
+        }
+        try {
+            dataCache.put(pageIndex, this.getPageContent(pageIndex));
+        } catch (IndexOutOfSheetSizeException | UnsupportFormatException | NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+    }
+    /**
+     * 单页初始化
+     * @param id 指派导出类型，为null则自行查询
+     * @param file 文件流
+     * @param pageIndex 单页码，页码
+     */
+    SimpleExcelBean(String id,@NotNull File file,@NotNull Integer pageIndex){
+        this(file);
+        this.isTuring = false;
+        if(StringUtils.isEmpty(id)){
+            this.isChangeClass = true;
+        }else {
+            this.id = id;
+            this.clazz = msIoContainer.getClazz(id);
+            this.isChangeClass = false;
         }
         try {
             dataCache.put(pageIndex, this.getPageContent(pageIndex));
@@ -117,6 +121,20 @@ public final class SimpleExcelBean implements IExcelBean {
     }
 
     /**
+     * 多页指定每页的id并初始化
+     * @param idPool 每页的id池，会根据页码去索引，请根据顺序给定
+     * @param file 文件流
+     * @param isChangeClass 是否自动去寻找类，若设置为false则会省略当前无映射的页
+     */
+    SimpleExcelBean(@NotNull List<String> idPool,@NotNull File file,boolean isChangeClass){
+        this(file);
+        this.isTuring = true;
+        this.isChangeClass = isChangeClass;
+        this.idPool = idPool;
+        automaticPageTurningWithMapping();
+    }
+
+    /**
      * 多页不指定每页的id初始化
      * @param file 文件流
      * @param isChangeClass 若没有指定的class对象是否进行自动寻找
@@ -127,6 +145,19 @@ public final class SimpleExcelBean implements IExcelBean {
         this.isChangeClass = true;
         automaticPageTurningWithoutMapping();
     }
+
+    /**
+     * 多页不指定每页的id初始化
+     * @param file 文件流
+     * @param isChangeClass 若没有指定的class对象是否进行自动寻找
+     */
+    SimpleExcelBean(@NotNull File file,@NotNull boolean isChangeClass){
+        this(file);
+        this.isTuring = true;
+        this.isChangeClass = true;
+        automaticPageTurningWithoutMapping();
+    }
+
 
     /**
      * 未指定反射对象迭代获取
@@ -199,7 +230,7 @@ public final class SimpleExcelBean implements IExcelBean {
             rowIndex = mergedRegion.getLastRow() + 1;
         }
         //正式解析
-        List<String> titles = MsUtils.getRowDataInString(rowIndex, 0, 0, sheetNow);
+        List<String> titles = MsUtils.getRowDataInString(rowIndex ++, 0, 0, sheetNow);
         if(titles == null || titles.size() == 0){
             throw new NullPointerException("标题行为空，请检查格式");
         }
@@ -268,64 +299,57 @@ public final class SimpleExcelBean implements IExcelBean {
             String value = MsUtils.getStringValueFromCell(row.getCell(i));
             String title = titles.get(i);
             String egTitle = inversion.get(title);
-            MsIoContainer.Information information = auto.get(title);
+            MsIoContainer.Information information = auto.get(egTitle);
             if(information.getFieldType() == String.class){
                 ClassUtils.setFieldValue(value, egTitle, obj, clazz);
                 //倘若导入目标为集合的情况
             }else if(List.class.isAssignableFrom(information.getFieldType())){
                 String simpleName = "fromStringtoListBy" + information.getFieldType().getSimpleName();
-                MethodAccess methodAccess = ClassUtils.getMethodAccess(formatConversion.getClass());
-                int methodIndex;
+                Object invoke;
                 try {
-                    methodIndex = methodAccess.getIndex(simpleName, String.class);
+                    invoke = ClassUtils.invokeMethod(formatConversion, simpleName, value);
                 }catch (IllegalArgumentException e){
                     log.error("尝试使用" + simpleName + "获取方法失败，正在尝试使用全名获取");
                     String flexName = "fromStringtoSetBy" + information.getFieldType().getName().replaceAll(".", "");
                     try {
-                        methodIndex = methodAccess.getIndex(flexName, String.class);
+                        invoke = ClassUtils.invokeMethod(formatConversion, flexName, value);
                     }catch (IllegalArgumentException e1){
                         log.error("尝试使用" + flexName + "获取方法失败，抛出异常，请检查是否存在方法或者方法是否设置为non-private");
                         throw new NoSuchMethodException("无法找到方法" + simpleName + "、" + flexName);
                     }
                 }
-                Object invoke = methodAccess.invoke(formatConversion, methodIndex, String.class, value);
                 ClassUtils.setFieldValue(value, egTitle, obj, clazz);
             }else if(Set.class.isAssignableFrom(information.getFieldType())){
                 String simpleName = "fromStringtoSetBy" + information.getFieldType().getSimpleName();
-                MethodAccess methodAccess = ClassUtils.getMethodAccess(formatConversion.getClass());
-                int methodIndex;
+                Object invoke;
                 try {
-                    methodIndex = methodAccess.getIndex(simpleName, String.class);
+                    invoke = ClassUtils.invokeMethod(formatConversion, simpleName, value);
                 }catch (IllegalArgumentException e){
                     log.error("尝试使用" + simpleName + "获取方法失败，正在尝试使用全名获取");
                     String flexName = "fromStringtoSetBy" + information.getFieldType().getName().replaceAll(".", "");
                     try {
-                        methodIndex = methodAccess.getIndex(flexName, String.class);
+                        invoke = ClassUtils.invokeMethod(formatConversion, flexName, value);
                     }catch (IllegalArgumentException e1){
                         log.error("尝试使用" + flexName + "获取方法失败，抛出异常，请检查是否存在方法或者方法是否设置为non-private");
                         throw new NoSuchMethodException("无法找到方法" + simpleName + "、" + flexName);
                     }
                 }
-                Object invoke = methodAccess.invoke(formatConversion, methodIndex, String.class, value);
                 ClassUtils.setFieldValue(value, egTitle, obj, clazz);
             }else{
                 String simpleName = "fromStringto" + information.getFieldType().getSimpleName();
-                MethodAccess methodAccess = ClassUtils.getMethodAccess(formatConversion.getClass());
-                int methodIndex;
+                Object invoke;
                 try {
-                    methodIndex = methodAccess.getIndex(simpleName, String.class);
+                    invoke = ClassUtils.invokeMethod(formatConversion, simpleName, value);
                 }catch (IllegalArgumentException e){
                     log.error("尝试使用" + simpleName + "获取方法失败，正在尝试使用全名获取");
                     String flexName = "fromStringto" + information.getFieldType().getName().replaceAll(".", "");
                     try {
-                        methodIndex = methodAccess.getIndex(flexName, String.class);
+                        invoke = ClassUtils.invokeMethod(formatConversion, flexName, value);
                     }catch (IllegalArgumentException e1){
-                        log.error("尝试使用" + flexName + "获取方法失败，抛出异常，请检查是否存在方法或者方法是否设置为non-private");
-                        throw new NoSuchMethodException("无法找到方法" + simpleName + "、" + flexName);
+                        throw new NoSuchMethodException("尝试使用" + flexName + "获取方法失败，抛出异常，请检查是否存在方法或者方法是否设置为non-private");
                     }
                 }
-                Object invoke = methodAccess.invoke(formatConversion, methodIndex, String.class, value);
-                ClassUtils.setFieldValue(value, egTitle, obj, clazz);
+                ClassUtils.setFieldValue(invoke, egTitle, obj, clazz);
             }
         }
         return obj;

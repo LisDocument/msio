@@ -4,6 +4,8 @@ import com.esotericsoftware.reflectasm.MethodAccess;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -26,6 +28,7 @@ public class ClassUtils {
      */
     private static ConcurrentHashMap<String, MethodAccess> methodAccessCache = new ConcurrentHashMap<>(128);
 
+    private static ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<>(128);
     /**
      * 私有获取MethodAccess的方法，
      * @param clazz
@@ -38,6 +41,40 @@ public class ClassUtils {
         }
         return methodAccessCache.get(name);
     }
+
+    /**
+     * 基于缓存项的反射调用方法
+     * @param obj
+     * @param functionName
+     * @param params
+     * @return
+     * @throws NoSuchMethodException
+     * @throws IllegalAccessException
+     * @throws InvocationTargetException
+     */
+    public static Object invokeMethod(Object obj,String functionName,Object... params) throws NoSuchMethodException{
+        Class<?> clazz = obj.getClass();
+        String key = clazz.getName() + ":" + functionName + "!";
+        Class<?>[] classes = new Class<?>[params.length];
+        for (int i = 0; i < params.length; i++) {
+            Class<?> aClass = params[i].getClass();
+            key += aClass.getName();
+            classes[i] = aClass;
+        }
+        if(!methodCache.containsKey(key)){
+            methodCache.put(key,clazz.getMethod(functionName, classes));
+        }
+        Method method = methodCache.get(key);
+        try {
+            return method.invoke(obj,params);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     /**
      * 根据属性名自动获取其中的数据
      * @param fieldName 属性名称
@@ -58,18 +95,6 @@ public class ClassUtils {
     public static void setFieldValue(Object fieldValue,String fieldName,Object o,Class<?> clazz){
         String methodName = "set" + fieldName.substring(0,1).toUpperCase() + fieldName.substring(1);
         getMethodAccess(clazz).invoke(o,methodName,fieldValue);
-    }
-
-    /**
-     * 根据方法名和操作对象进行调用
-     * @param obj 操作对象
-     * @param methodName 方法名
-     * @param args 参数
-     * @return 方法调用后的结果
-     */
-    public static Object invokeMethod(Object obj,String methodName,Object... args){
-        Object invoke = getMethodAccess(obj.getClass()).invoke(obj, methodName, args);
-        return invoke;
     }
 
 
