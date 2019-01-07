@@ -102,10 +102,10 @@ public class MsIoServlet extends DispatcherServlet {
                     response.setContentType("application/vnd.ms-excel;charset=utf-8");
                     response.setCharacterEncoding("utf-8");
                     response.setHeader("Content-disposition", "attachment;filename=download.xlsx");
-                    if(!translator.isComplex()) {
+                    if(translator == null || !translator.isComplex()) {
                         IExcelBeanReverse ins = ExcelFactory.getSimpleExcelBeanReverseInstance((List) requestResult, (e, item) -> item);
                         ins.getWorkbook().write(response.getOutputStream());
-                    }else{
+                    }else if(translator.isComplex()){
                         IExcelBeanReverse ins = ExcelFactory.getComplexExcelBeanReverseInstance(translator.id()[0],(List)requestResult,(e, item) -> item);
                         ins.getWorkbook().write(response.getOutputStream());
                     }
