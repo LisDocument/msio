@@ -33,9 +33,9 @@ public class StringRegexUtils {
 
     /**
      * 提取默认值
-     * @param obj
-     * @param defaultValue
-     * @return
+     * @param obj 需要判断是否空的对象
+     * @param defaultValue 如果是空返回的String类型的对象
+     * @return 处理后的数据
      */
     public static String getOrDefault(Object obj, String defaultValue){
         if(null == obj || "".equals(obj)){

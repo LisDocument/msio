@@ -25,6 +25,7 @@ public abstract class AbstractMsConfigure {
      * 添加额外映射
      * @param container 容器实体，会自动注入属性
      * @return 返回
+     * @throws Exception 配置错误
      */
     public MsIoContainer configContainer(MsIoContainer container) throws Exception{
         return container;

@@ -29,7 +29,6 @@ import java.util.TreeSet;
  * Created with IntelliJ IDEA.
  * 复杂Excel导出
  * @author ThisLi(Bin)
- * @date 2019/1/3
  * time: 15:36
  * To change this template use File | Settings | File Templates.
  */
@@ -51,6 +50,7 @@ public final class ComplexExcelBeanReverse extends BaseExcelBeanReverse{
      * @param type 导出种类
      * @param pageSize 每页显示记录数
      * @param handler 错误操作
+     * @param mapKey 映射id与页码的对应关系
      */
     ComplexExcelBeanReverse(Map<Integer,List> data,boolean asycSign, boolean localCache, ExcelFactory.ExcelDealType type,
                                     int localCacheSize, int pageSize, Map<Integer, String> mapKey, OutExceptionHandler handler) {
@@ -176,10 +176,14 @@ public final class ComplexExcelBeanReverse extends BaseExcelBeanReverse{
     }
 
     /**
-     *
+     * 提取复杂pojo类中的数据
      * @param o pojo对象
+     * @param clazz 当前解析类的字节码对象
      * @param mapping 映射关系
      * @param row 数据转储行
+     * @param index 列偏移指针
+     * @param pageNo 当前映射页标识
+     * @return 列当前指针位置
      */
     private int complexRowDataByPojo(Object o,Class<?> clazz, LinkedHashMap<String, MsIoContainer.Information> mapping,Row row,int index,int pageNo){
         DataUnCatchException error = null;
@@ -229,6 +233,7 @@ public final class ComplexExcelBeanReverse extends BaseExcelBeanReverse{
      * @param maxLevel 当前层，用于统计当前指针层数，从0开始向下延伸，叶子层一律用最下层作为lastRowNum，双亲层一般为单层
      * @param index 当前列，作用为指针，在递归过程中能够记录
      * @param sheet 页面
+     * @param titles 标题提取变量，使用地址传递的特性进行处理
      * @return 数据
      */
     private int mapComplexTitle(LinkedHashMap<String, MsIoContainer.Information> mapping, int depthLevel, int maxLevel, int index, Sheet sheet, LinkedHashMap<String, MsIoContainer.Information> titles){

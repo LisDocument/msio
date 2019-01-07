@@ -30,7 +30,6 @@ import java.util.*;
  * Created with IntelliJ IDEA.
  * 简单Excel导入功能
  * @author ThisLi(Bin)
- * @date 2019/1/3
  * time: 15:32
  * To change this template use File | Settings | File Templates.
  */
@@ -280,6 +279,7 @@ public final class SimpleExcelBean extends BaseExcelBean {
      * @param clazz Pojo对应类
      * @param auto 自动赋值方法
      * @return 解析结果
+     * @throws NoSuchMethodException 找不到对应的方法
      */
     @SuppressWarnings("all")
     private Object conversionPojo(Row row, LinkedHashMap<String, String> inversion, List<String> titles, Class<?> clazz,

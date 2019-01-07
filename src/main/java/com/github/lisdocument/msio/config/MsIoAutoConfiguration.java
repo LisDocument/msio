@@ -104,6 +104,7 @@ class MsIoAutoConfiguration {
     /**
      * 初始化全局容器
      * @param abstractMsConfigure 注册缓存映射
+     * @param ITransFunctionContainer 导出格式转换容器
      * @return 全局容器
      */
     @Bean

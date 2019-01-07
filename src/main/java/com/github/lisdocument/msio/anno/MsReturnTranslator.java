@@ -6,9 +6,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * @Author: Libin
- * @Description: 用来处理相关格式
- * @Date: 11:01 2018/11/11
+ * 用来处理相关格式
+ * @author Libin
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD})

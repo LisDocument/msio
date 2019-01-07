@@ -25,7 +25,6 @@ import java.util.*;
  * Created with IntelliJ IDEA.
  * 简单Excel导出功能
  * @author ThisLi(Bin)
- * @date 2019/1/3
  * time: 15:32
  * To change this template use File | Settings | File Templates.
  */
@@ -42,6 +41,7 @@ public final class SimpleExcelBeanReverse extends BaseExcelBeanReverse{
      * @param type 导出种类
      * @param pageSize 每页显示记录数
      * @param handler 错误操作
+     * @param mapKey 每页对应的映射id
      */
     SimpleExcelBeanReverse(Map<Integer,List> data, boolean asycSign, boolean localCache
             , int localCacheSize, ExcelFactory.ExcelDealType type, int pageSize,Map<Integer,String> mapKey, OutExceptionHandler handler){

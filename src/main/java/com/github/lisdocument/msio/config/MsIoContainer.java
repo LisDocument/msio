@@ -82,6 +82,7 @@ public class MsIoContainer {
 
     /**
      * 推荐方式
+     * @param iTransFunctionContainer 转出格式转换器
      */
     public MsIoContainer(ITransFunctionContainer iTransFunctionContainer) {
         this.iTransFunctionContainer = iTransFunctionContainer;
@@ -91,6 +92,7 @@ public class MsIoContainer {
     /**
      * 初始化对文件进行读取以及类进行加载，
      * 会被初始化方法进行调用
+     * @param abstractMsConfigure 获取用户配置对象
      */
     void init(AbstractMsConfigure abstractMsConfigure){
         initJson();
@@ -117,6 +119,7 @@ public class MsIoContainer {
     /**
      * 遍历匹配获取映射,仅允许数据(中文数据匹配)
      * @param titles 需要被匹配的头
+     * @param isEg 是否英文匹配项
      * @return 返回映射
      */
     @SuppressWarnings("all")
@@ -258,6 +261,7 @@ public class MsIoContainer {
 
     /**
      * 为节省资源创建的一个可复用的方法体
+     * @param <T> 指定的对象初始化
      * @param clazz Class对象，用于自动生成处理对象
      * @return Class对象生成的一个对应的对象
      */
@@ -328,6 +332,9 @@ public class MsIoContainer {
      * 复杂的映射导入
      * @param clazz 复杂的Clazz
      * @return 成功
+     * @throws NoSuchMethodException 找不到对应的方法
+     * @throws InstantiationException 某种错误
+     * @throws IllegalAccessException 配置文件内容错误
      */
     private boolean addMappingComplex(Class<?> clazz) throws NoSuchMethodException,InstantiationException,IllegalAccessException{
         MsOperator operator = clazz.getDeclaredAnnotation(MsOperator.class);
@@ -395,6 +402,9 @@ public class MsIoContainer {
      * 注解添加映射方法,专门为Pojo类使用的
      * @param clazz 需要被映射的方法
      * @return 是否被添加
+     * @throws NoSuchMethodException 找不到对应的方法
+     * @throws InstantiationException 某种错误
+     * @throws IllegalAccessException 配置文件内容错误
      */
     @SuppressWarnings("all")
     public boolean addMapping(Class<?> clazz) throws NoSuchMethodException,InstantiationException,IllegalAccessException{
@@ -452,6 +462,11 @@ public class MsIoContainer {
      * 理论上对Map进行维护
      * @param jsonData 翻译过来的数据
      * @return 是否成功
+     * @throws ClassNotFoundException 找不到对应的类
+     * @throws NoSuchMethodException 找不到对应的方法
+     * @throws NoSuchFieldException 找不到对应的属性
+     * @throws IllegalAccessException 配置文件内容错误
+     * @throws UnsupportFormatException 非法格式
      */
     @SuppressWarnings("all")
     public boolean addMapping(Map jsonData) throws ClassNotFoundException,NoSuchMethodException,IllegalAccessException,NoSuchFieldException,UnsupportFormatException{
@@ -469,6 +484,12 @@ public class MsIoContainer {
     /**
      * 对复杂Map对象的解析方法，
      * @param jsonData 复杂map
+     * @param key 键
+     * @throws ClassNotFoundException 找不到对应的类
+     * @throws NoSuchMethodException 找不到对应的方法
+     * @throws NoSuchFieldException 找不到对应的属性
+     * @throws IllegalAccessException 配置文件内容错误
+     * @throws UnsupportFormatException 非法格式
      */
     @SuppressWarnings("unchecked")
     private void addMappingComplex(Object key,Map jsonData) throws ClassNotFoundException,NoSuchMethodException,IllegalAccessException,NoSuchFieldException,UnsupportFormatException{
@@ -554,6 +575,13 @@ public class MsIoContainer {
 
     /**
      * 文件配置项单项处理
+     * @param key 键
+     * @param information 键对应的映射
+     * @throws ClassNotFoundException 找不到对应的类
+     * @throws NoSuchMethodException 找不到对应的方法
+     * @throws NoSuchFieldException 找不到对应的属性
+     * @throws IllegalAccessException 配置文件内容错误
+     * @throws UnsupportFormatException 非法格式
      */
     private void addMappingItem(String key, LinkedHashMap<Object, Object> information)
             throws ClassNotFoundException, NoSuchMethodException, NoSuchFieldException, IllegalAccessException,UnsupportFormatException {

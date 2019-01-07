@@ -1,8 +1,7 @@
 package com.github.lisdocument.msio.unit.func;
 /**
- * @Author: Libin
- * @Description: 导出时错误处理程序，一旦加入错误处理程序，所有错误将会被按照指定方法执行，发生转化错误时仅仅会打印错误信息，不会中断
- * @Date: 20:35 2018/11/8
+ * 导出时错误处理程序，一旦加入错误处理程序，所有错误将会被按照指定方法执行，发生转化错误时仅仅会打印错误信息，不会中断
+ * @author Libin
  */
 @FunctionalInterface
 public interface OutExceptionHandler {

@@ -95,6 +95,7 @@ public class MsUtils {
     /**
      * 将文件转换为Workbook示例
      * @param file 输入链接
+     * @return excel文本实体
      */
 
     public static Workbook transWorkbook(MultipartFile file){
@@ -114,6 +115,7 @@ public class MsUtils {
      * 判断指定的单元格是否是合并单元格
      * @param row 行下标
      * @param column 列下标
+     * @param sheet 工作簿实体
      * @return 合并单元格制式id
      */
     public static int isMergedRegion(int row , int column, Sheet sheet) {
@@ -142,6 +144,7 @@ public class MsUtils {
      * @param endColumnNo 结束列/包括
      * @param isCover 是否覆盖 ，true会删除之前的数据，false若是之前有数据会进行拼接放入，value会被无视
      * @param isTitle 是否标题，标题格式会被处理,true为标题
+     * @param sheet 工作簿实体
      */
     public static void mergeAndCenteredCell(Sheet sheet,String value, int startRowNo, int endRowNo,
                                                 int startColumnNo, int endColumnNo,boolean isCover,boolean isTitle){
@@ -189,6 +192,7 @@ public class MsUtils {
      * @param rowNum 行号
      * @param columnNo 起始列
      * @param size 数据读取长度
+     * @param sheet 工作簿实体
      * @return 当前行产生的String数据
      */
     public static List<String> getRowDataInString(int rowNum, int columnNo, int size, Sheet sheet){
@@ -280,6 +284,7 @@ public class MsUtils {
      * 避免空指针异常获取单元格
      * @param rowNum 行
      * @param cellNum 列好
+     * @param sheet 工作簿实体
      * @return 单元格
      */
     public static Cell createOrGetCell(Sheet sheet,int rowNum,int cellNum){

@@ -1,8 +1,6 @@
 package com.github.lisdocument.msio.exception;
 /**
- * @Author: Libin
- * @Description:
- * @Date: 15:11 2018/11/11
+ * @author Libin
  */
 public class MsELUnsupportException extends Exception{
 

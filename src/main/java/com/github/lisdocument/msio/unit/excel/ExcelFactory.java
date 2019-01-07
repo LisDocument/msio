@@ -114,6 +114,7 @@ public class ExcelFactory {
      * @param localCacheSize 本地缓存数量
      * @param type 解析文件名
      * @param handler 错误处理方法
+     * @param pageSize 每页允许的最大数量
      * @return 封装好的处理
      */
     public static IExcelBeanReverse getSimpleExcelBeanReverseInstance(Map<Integer,List> data, boolean asycSign,
@@ -152,6 +153,7 @@ public class ExcelFactory {
      * @param type 导出种类
      * @param pageSize 每页显示记录数
      * @param handler 错误操作
+     * @param mapKey 每页的映射id对应
      * @return 分装好的处理类
      */
     public static IExcelBeanReverse getSimpleExcelBeanReverseInstance(Map<Integer,List> data, boolean asycSign, boolean localCache
@@ -190,6 +192,8 @@ public class ExcelFactory {
      * @param type 导出种类
      * @param pageSize 每页显示记录数
      * @param handler 错误操作
+     * @param mapKey 每页的映射id对应页码
+     * @return 处理单元
      */
     public static IExcelBeanReverse getComplexExcelBeanReverseInstance(Map<Integer,List> data,boolean asycSign, boolean localCache, ExcelFactory.ExcelDealType type,
                             int localCacheSize, int pageSize, Map<Integer, String> mapKey, OutExceptionHandler handler) {

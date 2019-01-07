@@ -31,8 +31,8 @@ public class ClassUtils {
     private static ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<>(128);
     /**
      * 私有获取MethodAccess的方法，
-     * @param clazz
-     * @return
+     * @param clazz 被调用方法的对象的字节码对象
+     * @return 方法调用体
      */
     public static MethodAccess getMethodAccess(Class<?> clazz){
         String name = clazz.getName();
@@ -44,13 +44,11 @@ public class ClassUtils {
 
     /**
      * 基于缓存项的反射调用方法
-     * @param obj
-     * @param functionName
-     * @param params
-     * @return
-     * @throws NoSuchMethodException
-     * @throws IllegalAccessException
-     * @throws InvocationTargetException
+     * @param obj 被调用方法的对象
+     * @param functionName 被调用方法的方法名称
+     * @param params 被调用方法的参数
+     * @return 调用方法后的结果
+     * @throws NoSuchMethodException 找不到对应的方法
      */
     public static Object invokeMethod(Object obj,String functionName,Object... params) throws NoSuchMethodException{
         Class<?> clazz = obj.getClass();
@@ -79,6 +77,7 @@ public class ClassUtils {
      * 根据属性名自动获取其中的数据
      * @param fieldName 属性名称
      * @param o 对象
+     * @param clazz 对象的字节码对象
      * @return 该属性值
      */
     public static Object getFieldValue(String fieldName, Object o, Class<?> clazz){
@@ -91,6 +90,7 @@ public class ClassUtils {
      * @param fieldValue 属性值
      * @param fieldName 属性名
      * @param o 对象
+     * @param clazz 对象的映射字节码对象
      */
     public static void setFieldValue(Object fieldValue,String fieldName,Object o,Class<?> clazz){
         String methodName = "set" + fieldName.substring(0,1).toUpperCase() + fieldName.substring(1);
@@ -128,7 +128,7 @@ public class ClassUtils {
     /**
      * 从包package中获取所有的Class
      * @param packageName 包名
-     * @return
+     * @return 包名下面的所有class
      */
     public static List<Class<?>> getClasses(String packageName){
         List<Class<?>> classes = new ArrayList<>();
