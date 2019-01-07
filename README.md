@@ -45,9 +45,9 @@ isComplex是否为复杂项导出，在需要复杂导出的时候必须要指�
   "1":{
     "xhz":"小\\$$t1",
     "dhz":"大",
-    "className":github  },
+    "className":com.github.test.Test  },
   "3":{
-    "//className":"github }
+    "//className":"github.test.Test }
 }
 ```
 
