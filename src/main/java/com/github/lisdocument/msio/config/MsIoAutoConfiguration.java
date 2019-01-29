@@ -15,7 +15,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.DispatcherServlet;
 
 import javax.sql.DataSource;
@@ -26,6 +28,7 @@ import javax.sql.DataSource;
  * 协同总配置类，框架入口
  */
 @Configuration
+@ComponentScan("com.github.lisdocument.msio")
 class MsIoAutoConfiguration {
 
     @Value("${spring.micro.listen.url:/upload/*}")

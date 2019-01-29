@@ -19,7 +19,9 @@ import org.springframework.util.StringUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -271,7 +273,7 @@ public class MsIoContainer {
             try {
                 instanceCache.put(clazz, clazz.newInstance());
             } catch (InstantiationException | IllegalAccessException e) {
-                log.error("通过class创建对象失败，检查是否私有化了构造函数，或者未定义无参构造函数");
+                log.error("通过class创建对象失败，检查是否私有化了构造函数，或者未定义无参构造函数,或定义了中类");
                 e.printStackTrace();
             }
         }
@@ -295,7 +297,7 @@ public class MsIoContainer {
         } catch (IOException e) {
             e.printStackTrace();
             return;
-        } catch (NullPointerException e){
+        } catch (Exception e){
             log.error("map配置文件为空，或者文件内容为空，默认用户不需要配置操作，初始化配置文件操作跳过");
             return;
         }
@@ -400,14 +402,29 @@ public class MsIoContainer {
 
     /**
      * 注解添加映射方法,专门为Pojo类使用的
-     * @param clazz 需要被映射的方法
+     * @param classes 需要被映射的对象
+     * @return 是否正常被添加
+     * @throws NoSuchMethodException 找不到对应的方法
+     * @throws InstantiationException 某种错误
+     * @throws IllegalAccessException 配置文件内容错误
+     */
+    public boolean addMappings(Class<?>... classes) throws NoSuchMethodException,InstantiationException,IllegalAccessException{
+        for (Class<?> aClass : classes) {
+            addMapping(aClass);
+        }
+        return true;
+    }
+
+    /**
+     * 注解添加映射方法,专门为Pojo类使用的
+     * @param clazz 需要被映射的对象
      * @return 是否被添加
      * @throws NoSuchMethodException 找不到对应的方法
      * @throws InstantiationException 某种错误
      * @throws IllegalAccessException 配置文件内容错误
      */
     @SuppressWarnings("all")
-    public boolean addMapping(Class<?> clazz) throws NoSuchMethodException,InstantiationException,IllegalAccessException{
+    private boolean addMapping(Class<?> clazz) throws NoSuchMethodException,InstantiationException,IllegalAccessException{
         MsOperator msOperator = (MsOperator) clazz.getDeclaredAnnotation(MsOperator.class);
         //复杂映射计算直接推送至复杂计算单元执行
         if(0 != msOperator.subClazz().length){
@@ -469,7 +486,7 @@ public class MsIoContainer {
      * @throws UnsupportFormatException 非法格式
      */
     @SuppressWarnings("all")
-    public boolean addMapping(Map jsonData) throws ClassNotFoundException,NoSuchMethodException,IllegalAccessException,NoSuchFieldException,UnsupportFormatException{
+    private boolean addMapping(Map jsonData) throws ClassNotFoundException,NoSuchMethodException,IllegalAccessException,NoSuchFieldException,UnsupportFormatException{
         if(jsonData.isEmpty()){
             return false;
         }

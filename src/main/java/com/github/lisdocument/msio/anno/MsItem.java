@@ -32,7 +32,7 @@ public @interface MsItem {
 
     /**
      *
-     * @return 操作类，拾取方法的缓存方法池
+     * @return 操作类，拾取方法的缓存方法池,Opreator暂时不支持内部类的形式
      */
     Class<? extends Operator> transFormOperator() default DefaultOperator.class;
 }

@@ -63,4 +63,84 @@ public class ForwardingRecode {
      */
     private boolean isReturn;
 
+    public String getUserName() {
+        return userName;
+    }
+
+    public ForwardingRecode setUserName(String userName) {
+        this.userName = userName;
+        return this;
+    }
+
+    public String getSourceUrl() {
+        return sourceUrl;
+    }
+
+    public ForwardingRecode setSourceUrl(String sourceUrl) {
+        this.sourceUrl = sourceUrl;
+        return this;
+    }
+
+    public Date getUploadTime() {
+        return uploadTime;
+    }
+
+    public ForwardingRecode setUploadTime(Date uploadTime) {
+        this.uploadTime = uploadTime;
+        return this;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public ForwardingRecode setFileName(String fileName) {
+        this.fileName = fileName;
+        return this;
+    }
+
+    public Exception getException() {
+        return exception;
+    }
+
+    public ForwardingRecode setException(Exception exception) {
+        this.exception = exception;
+        return this;
+    }
+
+    public long getFileSize() {
+        return fileSize;
+    }
+
+    public ForwardingRecode setFileSize(long fileSize) {
+        this.fileSize = fileSize;
+        return this;
+    }
+
+    public String getCacheFilePath() {
+        return cacheFilePath;
+    }
+
+    public ForwardingRecode setCacheFilePath(String cacheFilePath) {
+        this.cacheFilePath = cacheFilePath;
+        return this;
+    }
+
+    public boolean isStore() {
+        return isStore;
+    }
+
+    public ForwardingRecode setStore(boolean store) {
+        isStore = store;
+        return this;
+    }
+
+    public boolean isReturn() {
+        return isReturn;
+    }
+
+    public ForwardingRecode setReturn(boolean aReturn) {
+        isReturn = aReturn;
+        return this;
+    }
 }

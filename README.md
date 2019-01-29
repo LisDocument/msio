@@ -47,7 +47,7 @@ isComplex是否为复杂项导出，在需要复杂导出的时候必须要指�
     "dhz":"大",
     "className":"com.github.test.Test"  },
   "3":{
-    "//className":"github.test.Test" }
+    "\\className":"github.test.Test" }
 }
 ```
 
@@ -100,3 +100,16 @@ className为指定该映射为某一个Pojo类的映射，如果不需要不要�
    可以通过ExcelFactory方法构建导出单元然后直接通过getData（java.lang.Integer）方法进行获取，参数的Integer表示页数，即如果Excel有多个工作簿，可以根据这个方法进行多页数据的获取，从0开始。
 
    <font color=#408F00>ExcelFactory提供了大量的生成处理单元的方法，根据不同的参数进行生成单元处理，如果不需要自动Servlet进行导出的话，可以关闭功能，通过ExcelFactory进行手动创建接口导出，会返回一个workbook对象，然后通过对response的回写可以实现自助的导出功能</font>
+
+## Version 1.0.1
+
+通过对1.0.0版本的版本更新，修复1.0.0的若干bug，添加下载日志入库功能
+
+### 注解
+1. @MsTranslateOperator:功能上实现了MsReturnTranslator中EL表达式，为应对多个接口返回相同类型的数据，需要写多次相同的表达式，为解决此类问题，该注解可注解在返回的vo类上，以后都会应用此注解，此注解优先级最高。
+
+### 添加的功能项
+
+  1.配置总入口添加方法configDataSource()：配置数据源返回，这边留下较大的自主性，可通过实现AbstactStoreRecordConfigure类对转储方式进行自定义，configDataSource返回的参数视AbstactStoreRecordConfigure的泛型类而定，如果返回空的情况下，记录下载功能会失效。
+
+​	

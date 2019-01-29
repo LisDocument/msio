@@ -2,6 +2,8 @@ package com.github.lisdocument.msio.config;
 
 import com.github.lisdocument.msio.config.derivative.BaseInterceptConstruction;
 
+import javax.sql.DataSource;
+
 /**
  * @author bin
  * 全文用户配置类，按照需求配置数据，用户介入唯一入口，通过继承配置类来配置
@@ -31,4 +33,11 @@ public abstract class AbstractMsConfigure {
         return container;
     }
 
+    /**
+     *
+     * @return
+     */
+    public <T> T configDataSource(){
+        return null;
+    }
 }

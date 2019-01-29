@@ -33,6 +33,36 @@ public class MsUtils {
     public static final Log log = LogFactory.getLog(MsUtils.class);
 
     /**
+     * 文件名中文输出方法修改
+     * @param s 带转换的文件名称
+     * @return 返回转换后的字符串
+     */
+    public static String toUtf8String(String s) {
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c >= 0 && c <= 255) {
+                sb.append(c);
+            } else {
+                byte[] b;
+                try {
+                    b = Character.toString(c).getBytes("utf-8");
+                } catch (Exception ex) {
+                    System.out.println(ex);
+                    b = new byte[0];
+                }
+                for (int j = 0; j < b.length; j++) {
+                    int k = b[j];
+                    if (k < 0)
+                        k += 256;
+                    sb.append("%" + Integer.toHexString(k).toUpperCase());
+                }
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
      * 映射关系转换方法
      * @param data 映射关系
      * @return 转换后的简单反转映射关系

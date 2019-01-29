@@ -1,9 +1,14 @@
 package com.github.lisdocument.msio.bean.common;
 
+import com.github.lisdocument.msio.anno.MsTranslateOperator;
+import com.github.lisdocument.msio.bean.db.DownloadReword;
+import com.github.lisdocument.msio.config.StoreRecordConfiguration;
 import com.github.lisdocument.msio.unit.excel.ExcelFactory;
 import com.github.lisdocument.msio.unit.excel.IExcelBeanReverse;
 import com.github.lisdocument.msio.anno.MsReturnTranslator;
 import com.github.lisdocument.msio.utils.MsELUtils;
+import com.github.lisdocument.msio.utils.MsUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.async.WebAsyncManager;
 import org.springframework.web.context.request.async.WebAsyncUtils;
@@ -18,6 +23,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * 文件转发接口
@@ -27,6 +33,8 @@ import java.util.List;
 @SuppressWarnings("unused")
 public class MsIoServlet extends DispatcherServlet {
 
+    @Autowired
+    private StoreRecordConfiguration storeRecordConfiguration;
     /**
      * 定义辅助信息防止servlet名称导致的方法无法映射的问题
      */
@@ -93,22 +101,45 @@ public class MsIoServlet extends DispatcherServlet {
                 Method invokeMethod = ((HandlerMethod) mappedHandler.getHandler()).getMethod();
                 MsReturnTranslator translator = invokeMethod.getDeclaredAnnotation(MsReturnTranslator.class);
                 Object requestResult = servletAssessUtils.getRequestResult(request,response, mappedHandler);
+                MsTranslateOperator msTranslateOperator = requestResult.getClass().getDeclaredAnnotation(MsTranslateOperator.class);
+                //转义List操作
+                String fileName = "download.xlsx";
+                ExcelFactory.ExcelDealType type = ExcelFactory.ExcelDealType.XLSX;
                 if(translator != null){
                     requestResult = MsELUtils.getValueByEL(requestResult,translator.value());
+                    fileName = translator.fileName() + translator.type().getValue();
+                    type = translator.type();
+                }else if(msTranslateOperator != null){
+                    requestResult = MsELUtils.getValueByEL(requestResult,msTranslateOperator.value());
                 }
                 if(requestResult instanceof List){
                     logger.info("Download task is beginning");
+                    //創建對象，生成記錄項
+                    DownloadReword downloadReword = new DownloadReword();
+                    downloadReword.setId(UUID.randomUUID().toString())
+                            .setIp(request.getRemoteAddr())
+                            .setMethod(method)
+                            .setUsername(request.getParameter("username"))
+                            .setUrl(request.getRequestURI())
+                            .setParams(CommonBean.OBJECT_MAPPER.writeValueAsString(request.getParameterMap()));
+
                     long last = System.currentTimeMillis();
                     response.setContentType("application/vnd.ms-excel;charset=utf-8");
                     response.setCharacterEncoding("utf-8");
-                    response.setHeader("Content-disposition", "attachment;filename=download.xlsx");
+                    response.setHeader("Content-disposition", "attachment;filename=" + MsUtils.toUtf8String(fileName));
                     if(translator == null || !translator.isComplex()) {
-                        IExcelBeanReverse ins = ExcelFactory.getSimpleExcelBeanReverseInstance((List) requestResult, (e, item) -> item);
+                        IExcelBeanReverse ins = ExcelFactory.getSimpleExcelBeanReverseInstance((List) requestResult, type, (e, item) -> item);
                         ins.getWorkbook().write(response.getOutputStream());
                     }else if(translator.isComplex()){
-                        IExcelBeanReverse ins = ExcelFactory.getComplexExcelBeanReverseInstance(translator.id()[0],(List)requestResult,(e, item) -> item);
+                        IExcelBeanReverse ins = ExcelFactory.getComplexExcelBeanReverseInstance(translator.id()[0],(List)requestResult,type,(e, item) -> item);
                         ins.getWorkbook().write(response.getOutputStream());
                     }
+                    downloadReword.setTime(System.currentTimeMillis());
+                    downloadReword.setCostTime((int)(downloadReword.getCostTime() - last));
+                    //發送數據進行保存
+                    storeRecordConfiguration.send(downloadReword);
+
+
                     logger.info("Download task completed in "+ (System.currentTimeMillis() - last)+" ms");
                 }else {
                     mv = ha.handle(processedRequest, response, mappedHandler.getHandler());

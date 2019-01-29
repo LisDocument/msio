@@ -31,11 +31,21 @@ public class ExcelFactory {
         /**
          * .xls
          */
-        XLS,
+        XLS(".xls"),
         /**
          * .xlsx
          */
-        XLSX
+        XLSX(".xlsx");
+
+        private String value;
+
+        private ExcelDealType(String value){
+            this.value = value;
+        }
+
+        public String getValue(){
+            return value;
+        }
     }
 
     /**
@@ -141,7 +151,18 @@ public class ExcelFactory {
      * @return 封装好的处理类
      */
     public static IExcelBeanReverse getSimpleExcelBeanReverseInstance(List data,OutExceptionHandler handler){
-        return new SimpleExcelBeanReverse(ImmutableMap.of(1,data),handler);
+        return new SimpleExcelBeanReverse(ImmutableMap.of(1,data), handler);
+    }
+
+    /**
+     * 获得导出集成类
+     * @param data 数据（单页）
+     * @param type 导出类型
+     * @param handler 错误处理机制
+     * @return 封装好的处理类
+     */
+    public static IExcelBeanReverse getSimpleExcelBeanReverseInstance(List data,ExcelDealType type, OutExceptionHandler handler){
+        return new SimpleExcelBeanReverse(data, type, handler);
     }
 
     /**
@@ -170,6 +191,18 @@ public class ExcelFactory {
      */
     public static IExcelBeanReverse getComplexExcelBeanReverseInstance(String id,List data,OutExceptionHandler handler){
         return new ComplexExcelBeanReverse(id,data,handler);
+    }
+
+    /**
+     * 获取复杂导出集成类
+     * @param id 复杂导出无法自动索引需要指定映射
+     * @param data 数据（单页）
+     * @param type 导出数据种类
+     * @param handler 错误处理方法
+     * @return 封装好的处理类
+     */
+    public static IExcelBeanReverse getComplexExcelBeanReverseInstance(String id,List data,ExcelDealType type,OutExceptionHandler handler){
+        return new ComplexExcelBeanReverse(id,data,type,handler);
     }
 
     /**

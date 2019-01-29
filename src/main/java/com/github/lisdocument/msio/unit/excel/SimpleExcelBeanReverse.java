@@ -56,6 +56,10 @@ public final class SimpleExcelBeanReverse extends BaseExcelBeanReverse{
         this(ImmutableMap.of(1,data),false,true,500, ExcelFactory.ExcelDealType.XLSX,65536,Maps.newHashMapWithExpectedSize(64), handler);
     }
 
+    SimpleExcelBeanReverse(List data, ExcelFactory.ExcelDealType type,OutExceptionHandler handler){
+        this(ImmutableMap.of(1,data),false,true,500, type,65536,Maps.newHashMapWithExpectedSize(64), handler);
+    }
+
     /**
      * 私有导出到workbook
      */
@@ -161,19 +165,22 @@ public final class SimpleExcelBeanReverse extends BaseExcelBeanReverse{
         }else{
             Class<?> clazz = data.get(0).getClass();
             LinkedHashMap<String, MsIoContainer.Information> mapping = msIoContainer.get(clazz);
+            int rowIndex = 1;
             //excel列表顺序,且对标题行赋值
             List<String> keySet = Lists.newArrayList();
-            mapping.forEach((k,v) -> {
+            int index = 0;
+            for (String k : mapping.keySet()) {
                 keySet.add(k);
-                titleRow.createCell(titleRow.getLastCellNum() + 1).setCellValue(v.getName());
-            });
+                titleRow.createCell(index ++).setCellValue(mapping.get(k).getName());
+            }
             out:
             for (Object obj : data) {
-                Row dataRow = sheet.createRow(sheet.getLastRowNum() + 1);
+                Row dataRow = sheet.createRow(rowIndex ++);
+                int cellIndex = 0;
                 for (String keyTemp : keySet) {
                     Object value = ClassUtils.getFieldValue(keyTemp, obj, clazz);
                     MsIoContainer.Information action = mapping.get(keyTemp);
-                    Cell cellTemp = dataRow.createCell(dataRow.getLastCellNum() + 1);
+                    Cell cellTemp = dataRow.createCell(cellIndex ++);
                     Object invoke;
                     try {
                         if(null != action.getMethod()){
@@ -184,11 +191,11 @@ public final class SimpleExcelBeanReverse extends BaseExcelBeanReverse{
                     }catch (IllegalAccessException | InvocationTargetException e){
                         //未找到错误处理程序，跳出循环并抛出异常，结束方法
                         if (handler == null) {
-                            error = new DataUnCatchException("第" + pageNo + "组，第" + dataRow.getRowNum() + "行，第" + cellTemp.getColumnIndex() +
+                            error = new DataUnCatchException("第" + pageNo + "组，第" + rowIndex + "行，第" + cellIndex +
                                     "列数据无法转换",e);
                             break out;
                         }
-                        log.error("第" + pageNo + "组，第" + dataRow.getRowNum() + "行，第" + cellTemp.getColumnIndex() +
+                        log.error("第" + pageNo + "组，第" + rowIndex + "行，第" + cellIndex +
                                 "列类数据无法转换", e);
                         //执行错误处理程序
                         invoke = handler.handle(e,value);
@@ -196,7 +203,7 @@ public final class SimpleExcelBeanReverse extends BaseExcelBeanReverse{
                     cellTemp.setCellValue(String.valueOf(invoke));
                 }
             }
-            rowSize = data.size() + 1;
+            rowSize = rowIndex;
             columnSize = mapping.size();
             if(error != null){
                 throw error;

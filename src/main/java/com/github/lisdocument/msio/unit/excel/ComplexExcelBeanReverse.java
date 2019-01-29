@@ -65,6 +65,10 @@ public final class ComplexExcelBeanReverse extends BaseExcelBeanReverse{
         this(ImmutableMap.of(0,data),false, true, ExcelFactory.ExcelDealType.XLSX, 500, 65536, ImmutableMap.of(0,id),handler);
     }
 
+    ComplexExcelBeanReverse(String id, List data, ExcelFactory.ExcelDealType type,OutExceptionHandler handler){
+        this(ImmutableMap.of(0,data),false, true, type, 500, 65536, ImmutableMap.of(0,id),handler);
+    }
+
     @Override
     void translator(){
         if(data == null || data.isEmpty()){

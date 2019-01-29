@@ -1,5 +1,7 @@
 package com.github.lisdocument.msio.anno;
 
+import com.github.lisdocument.msio.unit.excel.ExcelFactory;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -8,6 +10,7 @@ import java.lang.annotation.Target;
 /**
  * 用来处理相关格式
  * @author Libin
+ * @version 1.0.1
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD})
@@ -31,4 +34,16 @@ public @interface MsReturnTranslator {
      * @return 默认为不启动
      */
     boolean isComplex() default false;
+
+    /**
+     * 文件名，不包括后缀，后缀会随着文件格式自动更改
+     * @return 文件名
+     */
+    String fileName() default "download";
+
+    /**
+     * 文件格式
+     * @return 文件格式
+     */
+    ExcelFactory.ExcelDealType type() default ExcelFactory.ExcelDealType.XLSX;
 }

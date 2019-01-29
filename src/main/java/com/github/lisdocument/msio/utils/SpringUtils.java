@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
  * @author bin
  */
 @Component
-@ConditionalOnWebApplication
+//@ConditionalOnWebApplication
 public class SpringUtils implements ApplicationContextAware,InitializingBean{
 
     private Log log = LogFactory.getLog(SpringUtils.class);
