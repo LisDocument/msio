@@ -46,4 +46,10 @@ public @interface MsReturnTranslator {
      * @return 文件格式
      */
     ExcelFactory.ExcelDealType type() default ExcelFactory.ExcelDealType.XLSX;
+
+    /**
+     * 是否发送日志对象
+     * @return 默认打印，true是发送日志，false是不发送日志
+     */
+    boolean logSign() default true;
 }

@@ -2,6 +2,7 @@ package com.github.lisdocument.msio.bean.common;
 
 import com.github.lisdocument.msio.anno.MsTranslateOperator;
 import com.github.lisdocument.msio.bean.db.DownloadReword;
+import com.github.lisdocument.msio.config.AbstractStoreRecordConfigure;
 import com.github.lisdocument.msio.config.StoreRecordConfiguration;
 import com.github.lisdocument.msio.unit.excel.ExcelFactory;
 import com.github.lisdocument.msio.unit.excel.IExcelBeanReverse;
@@ -34,7 +35,7 @@ import java.util.UUID;
 public class MsIoServlet extends DispatcherServlet {
 
     @Autowired
-    private StoreRecordConfiguration storeRecordConfiguration;
+    private AbstractStoreRecordConfigure storeRecordConfiguration;
     /**
      * 定义辅助信息防止servlet名称导致的方法无法映射的问题
      */
@@ -135,9 +136,11 @@ public class MsIoServlet extends DispatcherServlet {
                         ins.getWorkbook().write(response.getOutputStream());
                     }
                     downloadReword.setTime(System.currentTimeMillis());
-                    downloadReword.setCostTime((int)(downloadReword.getCostTime() - last));
-                    //發送數據進行保存
-                    storeRecordConfiguration.send(downloadReword);
+                    downloadReword.setCostTime((int)(downloadReword.getTime() - last));
+                    //發送數據進行发送，
+                    if(translator.logSign()) {
+                        storeRecordConfiguration.send(downloadReword);
+                    }
 
 
                     logger.info("Download task completed in "+ (System.currentTimeMillis() - last)+" ms");

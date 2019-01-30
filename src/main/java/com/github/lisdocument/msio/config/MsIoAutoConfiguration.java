@@ -90,6 +90,8 @@ class MsIoAutoConfiguration {
         return new AbstractMsConfigure() {};
     }
 
+
+
     /**
      * 初始化拦截器容器基本信息
      * @param abstractMsConfigure 注册拦截器
@@ -124,11 +126,15 @@ class MsIoAutoConfiguration {
         return msIoContainer;
     }
 
-    @ConditionalOnMissingBean(DataSource.class)
-    @ConditionalOnProperty(name = "spring.msIo.dbLog",havingValue = "true")
-    @Bean(name = "msIoSource")
-    public DataSource dataSource(){
-        DruidDataSource dataSource = new DruidDataSource();
-        return dataSource;
+    /**
+     * 创建保存配置项
+     * @param abstractMsConfigure 保存配置项需要的bean
+     * @return 保存配置
+     */
+    @ConditionalOnMissingBean(AbstractStoreRecordConfigure.class)
+    @Bean
+    @Autowired
+    public AbstractStoreRecordConfigure dataSource(AbstractMsConfigure abstractMsConfigure){
+        return new StoreRecordConfiguration(abstractMsConfigure);
     }
 }
