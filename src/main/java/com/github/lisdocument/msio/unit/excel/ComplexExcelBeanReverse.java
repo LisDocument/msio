@@ -17,6 +17,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
@@ -53,20 +54,20 @@ public final class ComplexExcelBeanReverse extends BaseExcelBeanReverse{
      * @param mapKey 映射id与页码的对应关系
      */
     ComplexExcelBeanReverse(Map<Integer,List> data,boolean asycSign, boolean localCache, ExcelFactory.ExcelDealType type,
-                                    int localCacheSize, int pageSize, Map<Integer, String> mapKey, OutExceptionHandler handler) {
-        super(data, asycSign, localCache, handler, localCacheSize, pageSize, type, mapKey);
+                                    int localCacheSize, int pageSize, Map<Integer, String> mapKey,String[] title, OutExceptionHandler handler) {
+        super(data, asycSign, localCache, handler, localCacheSize, pageSize, type, mapKey, title);
     }
 
-    ComplexExcelBeanReverse(Map<Integer,String> ids,Map<Integer,List> data,OutExceptionHandler handler){
-        this(data,false, true, ExcelFactory.ExcelDealType.XLSX, 500, 65536, ids,handler);
+    ComplexExcelBeanReverse(Map<Integer,String> ids,Map<Integer,List> data,String[] title,OutExceptionHandler handler){
+        this(data,false, true, ExcelFactory.ExcelDealType.XLSX, 500, 65536, ids, title, handler);
     }
 
-    ComplexExcelBeanReverse(String id,List data,OutExceptionHandler handler){
-        this(ImmutableMap.of(0,data),false, true, ExcelFactory.ExcelDealType.XLSX, 500, 65536, ImmutableMap.of(0,id),handler);
+    ComplexExcelBeanReverse(String id,List data,String[] title,OutExceptionHandler handler){
+        this(ImmutableMap.of(0,data),false, true, ExcelFactory.ExcelDealType.XLSX, 500, 65536, ImmutableMap.of(0,id),title,handler);
     }
 
-    ComplexExcelBeanReverse(String id, List data, ExcelFactory.ExcelDealType type,OutExceptionHandler handler){
-        this(ImmutableMap.of(0,data),false, true, type, 500, 65536, ImmutableMap.of(0,id),handler);
+    ComplexExcelBeanReverse(String id, List data, ExcelFactory.ExcelDealType type,String[] title,OutExceptionHandler handler){
+        this(ImmutableMap.of(0,data),false, true, type, 500, 65536, ImmutableMap.of(0,id),title,handler);
     }
 
     @Override
@@ -107,8 +108,23 @@ public final class ComplexExcelBeanReverse extends BaseExcelBeanReverse{
         //全局错误
         DataUnCatchException error = null;
         //总行数和总列数
-        int columnSize = 0;
-        int rowSize = 0;
+        int columnSize;
+        int rowSize;
+        //为了给标题行留空
+        String head = null;
+        int titleNo = 0;
+        //标题为空
+        if(0 == title.length && StringUtils.isEmpty(title[0])){
+            //预留空标题处理项
+        }else{
+            titleNo = 1;
+            //标题确认
+            if(1 == title.length){
+                head = title[0];
+            }else {
+                head = title[pageNo];
+            }
+        }
         //解析行为
         if(instance instanceof Map){
             //获取深度
@@ -117,7 +133,11 @@ public final class ComplexExcelBeanReverse extends BaseExcelBeanReverse{
             LinkedHashMap<String, MsIoContainer.Information> mapping = msIoContainer.get(key);
             //编写标题
             LinkedHashMap<String, MsIoContainer.Information> titles = Maps.newLinkedHashMapWithExpectedSize(32);
-            mapComplexTitle(mapping,depthLevel,0,0,sheet,titles);
+            columnSize = mapComplexTitle(mapping,depthLevel + titleNo,titleNo,0,sheet,titles);
+            //标题写入
+            if(null != head) {
+                MsUtils.mergeAndCenteredCell(sheet, head, 0, 0, 0, columnSize - 1, true, true);
+            }
             //开始填入内容，map无层级关系，以最低级得叶子节点为主
             //行指针定义,行从0开始因此可以直接使用depthLevel
             int rowIndex = depthLevel;
@@ -162,11 +182,15 @@ public final class ComplexExcelBeanReverse extends BaseExcelBeanReverse{
             int depthLevel = msIoContainer.getDepthLevel(clazz);
             //这个title无效，pojo类产生的title，会因为英文相同导致被刷新
             LinkedHashMap<String, MsIoContainer.Information> titles = Maps.newLinkedHashMapWithExpectedSize(16);
-            columnSize = mapComplexTitle(mapping,depthLevel,0,0,sheet,titles);
+            columnSize = mapComplexTitle(mapping,depthLevel + titleNo,titleNo,0,sheet,titles);
+            //标题写入
+            if(null != head) {
+                MsUtils.mergeAndCenteredCell(sheet, head, 0, 0, 0, columnSize - 1, true, true);
+            }
             //遍历存储数据
             for (Object obj : list) {
                 Row dataRow = sheet.createRow(sheet.getLastRowNum() + 1);
-                complexRowDataByPojo(obj,obj.getClass(),mapping,dataRow,0,pageIndex);
+                complexRowDataByPojo(obj, obj.getClass(), mapping, dataRow,0, pageIndex);
             }
             rowSize = depthLevel + list.size();
             //columnSize = titles.size();

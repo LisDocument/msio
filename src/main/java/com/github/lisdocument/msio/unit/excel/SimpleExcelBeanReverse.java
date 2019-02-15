@@ -16,6 +16,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
@@ -44,20 +45,20 @@ public final class SimpleExcelBeanReverse extends BaseExcelBeanReverse{
      * @param mapKey 每页对应的映射id
      */
     SimpleExcelBeanReverse(Map<Integer,List> data, boolean asycSign, boolean localCache
-            , int localCacheSize, ExcelFactory.ExcelDealType type, int pageSize,Map<Integer,String> mapKey, OutExceptionHandler handler){
-        super(data, asycSign, localCache, handler, localCacheSize, pageSize, type, mapKey);
+            , int localCacheSize, ExcelFactory.ExcelDealType type, int pageSize,Map<Integer,String> mapKey,String[] title,OutExceptionHandler handler){
+        super(data, asycSign, localCache, handler, localCacheSize, pageSize, type, mapKey, title);
     }
 
-    SimpleExcelBeanReverse(Map<Integer,List> data,OutExceptionHandler handler){
-        this(data,false,true,500, ExcelFactory.ExcelDealType.XLSX,65536,Maps.newHashMapWithExpectedSize(64), handler);
+    SimpleExcelBeanReverse(Map<Integer,List> data,String[] title,OutExceptionHandler handler){
+        this(data,false,true,500, ExcelFactory.ExcelDealType.XLSX,65536,Maps.newHashMapWithExpectedSize(64),title,handler);
     }
 
-    SimpleExcelBeanReverse(List data,OutExceptionHandler handler){
-        this(ImmutableMap.of(1,data),false,true,500, ExcelFactory.ExcelDealType.XLSX,65536,Maps.newHashMapWithExpectedSize(64), handler);
+    SimpleExcelBeanReverse(List data,String[] title,OutExceptionHandler handler){
+        this(ImmutableMap.of(1,data),false,true,500, ExcelFactory.ExcelDealType.XLSX,65536,Maps.newHashMapWithExpectedSize(64), title, handler);
     }
 
-    SimpleExcelBeanReverse(List data, ExcelFactory.ExcelDealType type,OutExceptionHandler handler){
-        this(ImmutableMap.of(1,data),false,true,500, type,65536,Maps.newHashMapWithExpectedSize(64), handler);
+    SimpleExcelBeanReverse(List data, ExcelFactory.ExcelDealType type, String[] title, OutExceptionHandler handler){
+        this(ImmutableMap.of(1,data),false,true,500, type,65536,Maps.newHashMapWithExpectedSize(64), title, handler);
     }
 
     /**
@@ -104,14 +105,30 @@ public final class SimpleExcelBeanReverse extends BaseExcelBeanReverse{
         if(data.isEmpty()) {
             return;
         }
+        //列名行
+        Row titleRow = null;
+        //数据开始行，引入标题后需要修改数据起始行
+        int rowIndex = 1;
+        String head = null;
+        //标题为空
+        if(0 == title.length && StringUtils.isEmpty(title[0])){
+            titleRow = sheet.createRow(0);
+        }else{
+            rowIndex = 2;
+            titleRow = sheet.createRow(1);
+            //标题确认
+            if(1 == title.length){
+                head = title[0];
+            }else {
+                head = title[pageNo];
+            }
+        }
         Object typeStandard = data.get(0);
-        //map类型读取
-        Row titleRow = sheet.createRow(0);
         //全局错误
         DataUnCatchException error = null;
         //全局总行列数
-        int columnSize = 0;
-        int rowSize = 0;
+        int columnSize;
+        int rowSize;
         if(typeStandard instanceof Map){
             String key = msIoContainer.match(((Map) typeStandard).keySet(),true);
             mapKey.put(pageNo,key);
@@ -126,8 +143,10 @@ public final class SimpleExcelBeanReverse extends BaseExcelBeanReverse{
                 cell.setCellValue(v.getValue().getName());
                 keySet.add(v.getKey());
             }
-            //标记外层循环
-            int rowIndex = 1;
+            //标题写入
+            if(null != head) {
+                MsUtils.mergeAndCenteredCell(sheet, head, 0, 0, 0, keySet.size() - 1, true, true);
+            }
             out:
             for (Object map : data) {
                 Row rowTemp = sheet.createRow(rowIndex ++);
@@ -165,13 +184,16 @@ public final class SimpleExcelBeanReverse extends BaseExcelBeanReverse{
         }else{
             Class<?> clazz = data.get(0).getClass();
             LinkedHashMap<String, MsIoContainer.Information> mapping = msIoContainer.get(clazz);
-            int rowIndex = 1;
             //excel列表顺序,且对标题行赋值
             List<String> keySet = Lists.newArrayList();
             int index = 0;
             for (String k : mapping.keySet()) {
                 keySet.add(k);
                 titleRow.createCell(index ++).setCellValue(mapping.get(k).getName());
+            }
+            //标题写入
+            if(null != head) {
+                MsUtils.mergeAndCenteredCell(sheet, head, 0, 0, 0, keySet.size() - 1, true, true);
             }
             out:
             for (Object obj : data) {

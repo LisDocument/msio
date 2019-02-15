@@ -60,6 +60,10 @@ public abstract class BaseExcelBeanReverse implements IExcelBeanReverse{
      * 缓存的页码索引对象
      */
     Map<Integer,String> mapKey;
+    /**
+     * 标题
+     */
+    String[] title;
 
     MsIoContainer msIoContainer = SpringUtils.getBean(MsIoContainer.class);
 
@@ -72,7 +76,7 @@ public abstract class BaseExcelBeanReverse implements IExcelBeanReverse{
 
     BaseExcelBeanReverse(Map<Integer, List> data, boolean asycSign, boolean localCache,
                                 OutExceptionHandler handler, int localCacheSize, int pageSize,
-                                ExcelFactory.ExcelDealType type, Map<Integer,String> mapKey) {
+                                ExcelFactory.ExcelDealType type, Map<Integer,String> mapKey,String[] title) {
         this.data = data;
         this.asycSign = asycSign;
         this.localCache = localCache;
@@ -81,6 +85,7 @@ public abstract class BaseExcelBeanReverse implements IExcelBeanReverse{
         this.pageSize = pageSize;
         this.type = type;
         this.mapKey = mapKey;
+        this.title = title;
         translator();
     }
 }

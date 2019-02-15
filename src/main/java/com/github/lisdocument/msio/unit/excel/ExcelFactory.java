@@ -125,33 +125,36 @@ public class ExcelFactory {
      * @param type 解析文件名
      * @param handler 错误处理方法
      * @param pageSize 每页允许的最大数量
+     * @param title 内容标题，处于首行，定义为数组为了应对多页的情况，如果仅有1个，将所有页应用该标题，如果仅有一个且为空，无标题
      * @return 封装好的处理
      */
     public static IExcelBeanReverse getSimpleExcelBeanReverseInstance(Map<Integer,List> data, boolean asycSign,
                                                                       boolean localCache, int localCacheSize, ExcelDealType type,
-                                                                      int pageSize,OutExceptionHandler handler){
+                                                                      int pageSize,String[] title,OutExceptionHandler handler){
         return new SimpleExcelBeanReverse(data, asycSign, localCache
-            , localCacheSize, type, pageSize, Maps.newHashMapWithExpectedSize(64), handler);
+            , localCacheSize, type, pageSize, Maps.newHashMapWithExpectedSize(64), title, handler);
     }
 
     /**
      * 获取导出集成类
      * @param data 数据
      * @param handler 错误处理方法
+     * @param title 内容标题，处于首行，定义为数组为了应对多页的情况，如果仅有1个，将所有页应用该标题，如果仅有一个且为空，无标题
      * @return 封装好的处理类
      */
-    public static IExcelBeanReverse getSimpleExcelBeanReverseInstance(Map<Integer,List> data,OutExceptionHandler handler){
-        return new SimpleExcelBeanReverse(data,handler);
+    public static IExcelBeanReverse getSimpleExcelBeanReverseInstance(Map<Integer,List> data,String[] title, OutExceptionHandler handler){
+        return new SimpleExcelBeanReverse(data, title, handler);
     }
 
     /**
      * 获取导出集成类
      * @param data 数据(单页)
      * @param handler 错误处理方法
+     * @param title 内容标题，处于首行，定义为数组为了应对多页的情况，如果仅有1个，将所有页应用该标题，如果仅有一个且为空，无标题
      * @return 封装好的处理类
      */
-    public static IExcelBeanReverse getSimpleExcelBeanReverseInstance(List data,OutExceptionHandler handler){
-        return new SimpleExcelBeanReverse(ImmutableMap.of(1,data), handler);
+    public static IExcelBeanReverse getSimpleExcelBeanReverseInstance(List data, String[] title, OutExceptionHandler handler){
+        return new SimpleExcelBeanReverse(ImmutableMap.of(1,data), title, handler);
     }
 
     /**
@@ -159,10 +162,11 @@ public class ExcelFactory {
      * @param data 数据（单页）
      * @param type 导出类型
      * @param handler 错误处理机制
+     * @param title 内容标题，处于首行，定义为数组为了应对多页的情况，如果仅有1个，将所有页应用该标题，如果仅有一个且为空，无标题
      * @return 封装好的处理类
      */
-    public static IExcelBeanReverse getSimpleExcelBeanReverseInstance(List data,ExcelDealType type, OutExceptionHandler handler){
-        return new SimpleExcelBeanReverse(data, type, handler);
+    public static IExcelBeanReverse getSimpleExcelBeanReverseInstance(List data,ExcelDealType type,String[] title, OutExceptionHandler handler){
+        return new SimpleExcelBeanReverse(data, type, title, handler);
     }
 
     /**
@@ -175,11 +179,12 @@ public class ExcelFactory {
      * @param pageSize 每页显示记录数
      * @param handler 错误操作
      * @param mapKey 每页的映射id对应
+     * @param title 内容标题，处于首行，定义为数组为了应对多页的情况，如果仅有1个，将所有页应用该标题，如果仅有一个且为空，无标题
      * @return 分装好的处理类
      */
     public static IExcelBeanReverse getSimpleExcelBeanReverseInstance(Map<Integer,List> data, boolean asycSign, boolean localCache
-            , int localCacheSize, ExcelFactory.ExcelDealType type, int pageSize,Map<Integer,String> mapKey, OutExceptionHandler handler){
-        return new SimpleExcelBeanReverse(data,asycSign,localCache,localCacheSize,type,pageSize,mapKey,handler);
+            , int localCacheSize, ExcelDealType type, int pageSize,Map<Integer,String> mapKey,String[] title, OutExceptionHandler handler){
+        return new SimpleExcelBeanReverse(data,asycSign,localCache,localCacheSize,type,pageSize,mapKey,title,handler);
     }
 
     /**
@@ -187,10 +192,11 @@ public class ExcelFactory {
      * @param id 复杂导出无法自动索引需要指定映射
      * @param data 数据（单页）
      * @param handler 错误处理方法
+     * @param title 内容标题，处于首行，定义为数组为了应对多页的情况，如果仅有1个，将所有页应用该标题，如果仅有一个且为空，无标题
      * @return 封装好的处理类
      */
-    public static IExcelBeanReverse getComplexExcelBeanReverseInstance(String id,List data,OutExceptionHandler handler){
-        return new ComplexExcelBeanReverse(id,data,handler);
+    public static IExcelBeanReverse getComplexExcelBeanReverseInstance(String id,List data,String[] title,OutExceptionHandler handler){
+        return new ComplexExcelBeanReverse(id,data,title,handler);
     }
 
     /**
@@ -199,10 +205,11 @@ public class ExcelFactory {
      * @param data 数据（单页）
      * @param type 导出数据种类
      * @param handler 错误处理方法
+     * @param title 内容标题，处于首行，定义为数组为了应对多页的情况，如果仅有1个，将所有页应用该标题，如果仅有一个且为空，无标题
      * @return 封装好的处理类
      */
-    public static IExcelBeanReverse getComplexExcelBeanReverseInstance(String id,List data,ExcelDealType type,OutExceptionHandler handler){
-        return new ComplexExcelBeanReverse(id,data,type,handler);
+    public static IExcelBeanReverse getComplexExcelBeanReverseInstance(String id,List data,ExcelDealType type,String[] title,OutExceptionHandler handler){
+        return new ComplexExcelBeanReverse(id,data,type,title,handler);
     }
 
     /**
@@ -210,10 +217,11 @@ public class ExcelFactory {
      * @param ids 复杂导出多页指定映射
      * @param data 数据（多页）
      * @param handler 错误处理方法
+     * @param title 内容标题，处于首行，定义为数组为了应对多页的情况，如果仅有1个，将所有页应用该标题，如果仅有一个且为空，无标题
      * @return 封装好的处理类
      */
-    public static IExcelBeanReverse getComplexExcelBeanReverseInstance(Map<Integer,String> ids,Map<Integer,List> data,OutExceptionHandler handler){
-        return new ComplexExcelBeanReverse(ids,data,handler);
+    public static IExcelBeanReverse getComplexExcelBeanReverseInstance(Map<Integer,String> ids,Map<Integer,List> data,String[] title,OutExceptionHandler handler){
+        return new ComplexExcelBeanReverse(ids,data,title,handler);
     }
 
     /**
@@ -226,10 +234,11 @@ public class ExcelFactory {
      * @param pageSize 每页显示记录数
      * @param handler 错误操作
      * @param mapKey 每页的映射id对应页码
+     * @param title 内容标题，处于首行，定义为数组为了应对多页的情况，如果仅有1个，将所有页应用该标题，如果仅有一个且为空，无标题
      * @return 处理单元
      */
     public static IExcelBeanReverse getComplexExcelBeanReverseInstance(Map<Integer,List> data,boolean asycSign, boolean localCache, ExcelFactory.ExcelDealType type,
-                            int localCacheSize, int pageSize, Map<Integer, String> mapKey, OutExceptionHandler handler) {
-        return new ComplexExcelBeanReverse(data,asycSign,localCache,type,localCacheSize,pageSize,mapKey,handler);
+                            int localCacheSize, int pageSize, Map<Integer, String> mapKey,String[] title, OutExceptionHandler handler) {
+        return new ComplexExcelBeanReverse(data,asycSign,localCache,type,localCacheSize,pageSize,mapKey,title,handler);
     }
 }

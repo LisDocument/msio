@@ -129,10 +129,12 @@ public class MsIoServlet extends DispatcherServlet {
                     response.setCharacterEncoding("utf-8");
                     response.setHeader("Content-disposition", "attachment;filename=" + MsUtils.toUtf8String(fileName));
                     if(translator == null || !translator.isComplex()) {
-                        IExcelBeanReverse ins = ExcelFactory.getSimpleExcelBeanReverseInstance((List) requestResult, type, (e, item) -> item);
+                        IExcelBeanReverse ins = ExcelFactory.getSimpleExcelBeanReverseInstance((List) requestResult
+                                , type,null == translator ? new String[]{""} : translator.title(), (e, item) -> item);
                         ins.getWorkbook().write(response.getOutputStream());
                     }else if(translator.isComplex()){
-                        IExcelBeanReverse ins = ExcelFactory.getComplexExcelBeanReverseInstance(translator.id()[0],(List)requestResult,type,(e, item) -> item);
+                        IExcelBeanReverse ins = ExcelFactory.getComplexExcelBeanReverseInstance(translator.id()[0]
+                                ,(List)requestResult,type,translator.title(),(e, item) -> item);
                         ins.getWorkbook().write(response.getOutputStream());
                     }
                     downloadReword.setTime(System.currentTimeMillis());

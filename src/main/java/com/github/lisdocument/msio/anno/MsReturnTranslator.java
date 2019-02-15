@@ -17,7 +17,7 @@ import java.lang.annotation.Target;
 public @interface MsReturnTranslator {
 
     /**
-     * #表示返回的参数.表示调用方法，#.toString()就是调用返回参数的toString方法，点可连续使用
+     * #表示返回的参数.表示调用方法，#toString()就是调用返回参数的toString方法，点可连续使用
      * 作为EL表达式，将一些类型不正确的参数改正为正常List数据，例如Page变为List，或者返回是Map，仅需要部分数据
      * @return 注释在方法上，协同RequestMapping使用
      */
@@ -52,4 +52,10 @@ public @interface MsReturnTranslator {
      * @return 默认打印，true是发送日志，false是不发送日志
      */
     boolean logSign() default true;
+
+    /**
+     * 文档标题
+     * @return 每个文档的标题
+     */
+    String[] title() default "";
 }
