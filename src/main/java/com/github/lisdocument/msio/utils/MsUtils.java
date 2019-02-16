@@ -209,6 +209,11 @@ public class MsUtils {
         orGetCell.setCellValue("".equals(oldValue.toString()) ? value : oldValue.toString());
     }
 
+    /**
+     * 设置标题
+     * @param cellStyle 单元格样式实体
+     * @param workbook 工作簿整体
+     */
     public static void setTitle(CellStyle cellStyle,Workbook workbook){
         Font font = workbook.createFont();
         font.setFontName("黑体");
