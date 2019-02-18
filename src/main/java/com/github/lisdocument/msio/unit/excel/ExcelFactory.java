@@ -142,6 +142,18 @@ public class ExcelFactory {
      * @param title 内容标题，处于首行，定义为数组为了应对多页的情况，如果仅有1个，将所有页应用该标题，如果仅有一个且为空，无标题
      * @return 封装好的处理类
      */
+    public static IExcelBeanReverse getSimpleExcelBeanReverseInstance(Map<Integer,List> data,String[] title, boolean localCache, OutExceptionHandler handler){
+        return new SimpleExcelBeanReverse(data, title, localCache, handler);
+    }
+
+    /**
+     * 获取导出集成类
+     * @param data 数据
+     * @param handler 错误处理方法
+     * @param title 内容标题，处于首行，定义为数组为了应对多页的情况，如果仅有1个，将所有页应用该标题，如果仅有一个且为空，无标题
+     * @
+     * @return 封装好的处理类
+     */
     public static IExcelBeanReverse getSimpleExcelBeanReverseInstance(Map<Integer,List> data,String[] title, OutExceptionHandler handler){
         return new SimpleExcelBeanReverse(data, title, handler);
     }
@@ -153,9 +165,11 @@ public class ExcelFactory {
      * @param title 内容标题，处于首行，定义为数组为了应对多页的情况，如果仅有1个，将所有页应用该标题，如果仅有一个且为空，无标题
      * @return 封装好的处理类
      */
-    public static IExcelBeanReverse getSimpleExcelBeanReverseInstance(List data, String[] title, OutExceptionHandler handler){
-        return new SimpleExcelBeanReverse(ImmutableMap.of(1,data), title, handler);
+    public static IExcelBeanReverse getSimpleExcelBeanReverseInstance(List data, String title, OutExceptionHandler handler){
+        return new SimpleExcelBeanReverse(ImmutableMap.of(1,data), new String[]{title}, handler);
     }
+
+
 
     /**
      * 获得导出集成类

@@ -15,6 +15,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
@@ -79,7 +80,11 @@ public final class ComplexExcelBeanReverse extends BaseExcelBeanReverse{
         if(ExcelFactory.ExcelDealType.XLS.equals(type)){
             this.workbook = new HSSFWorkbook();
         }else{
-            this.workbook = new SXSSFWorkbook(localCacheSize);
+            if(localCache) {
+                this.workbook = new SXSSFWorkbook(localCacheSize);
+            }else {
+                this.workbook = new XSSFWorkbook();
+            }
         }
         TreeSet<Integer> sortKey = Sets.newTreeSet(data.keySet());
         for (Integer pageNo : sortKey) {

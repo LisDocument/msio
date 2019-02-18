@@ -234,10 +234,9 @@ public abstract class BaseExcelBeanReverse implements IExcelBeanReverse{
          * @param endColumnNo 结束列/包括
          * @param isCover 是否覆盖 ，true会删除之前的数据，false若是之前有数据会进行拼接放入，value会被无视
          * @param isTitle 是否标题，标题格式会被处理,true为标题
-         * @param sheet 工作簿实体
          * @return this
          */
-        public StyleBuilder merge(Sheet sheet,String value, int startRowNo, int endRowNo,
+        public StyleBuilder merge(String value, int startRowNo, int endRowNo,
                                   int startColumnNo, int endColumnNo,boolean isCover,boolean isTitle){
             MsUtils.mergeAndCenteredCell(sheet, value, startRowNo, endRowNo, startColumnNo, endColumnNo, isCover, isTitle);
 

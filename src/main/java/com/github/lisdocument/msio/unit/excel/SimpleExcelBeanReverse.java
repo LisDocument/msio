@@ -14,6 +14,7 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
@@ -53,8 +54,8 @@ public final class SimpleExcelBeanReverse extends BaseExcelBeanReverse{
         this(data,false,true,500, ExcelFactory.ExcelDealType.XLSX,65536,Maps.newHashMapWithExpectedSize(64),title,handler);
     }
 
-    SimpleExcelBeanReverse(List data,String[] title,OutExceptionHandler handler){
-        this(ImmutableMap.of(1,data),false,true,500, ExcelFactory.ExcelDealType.XLSX,65536,Maps.newHashMapWithExpectedSize(64), title, handler);
+    SimpleExcelBeanReverse(Map<Integer,List> data,String[] title, boolean localCache, OutExceptionHandler handler){
+        this(data,false,localCache,500, ExcelFactory.ExcelDealType.XLSX,65536,Maps.newHashMapWithExpectedSize(64), title, handler);
     }
 
     SimpleExcelBeanReverse(List data, ExcelFactory.ExcelDealType type, String[] title, OutExceptionHandler handler){
@@ -73,7 +74,11 @@ public final class SimpleExcelBeanReverse extends BaseExcelBeanReverse{
         if(ExcelFactory.ExcelDealType.XLS.equals(type)){
             this.workbook = new HSSFWorkbook();
         }else{
-            this.workbook = new SXSSFWorkbook(localCacheSize);
+            if(localCache) {
+                this.workbook = new SXSSFWorkbook(localCacheSize);
+            }else {
+                this.workbook = new XSSFWorkbook();
+            }
         }
         TreeSet<Integer> sortKey = Sets.newTreeSet(data.keySet());
         for (Integer pageNo : sortKey) {
