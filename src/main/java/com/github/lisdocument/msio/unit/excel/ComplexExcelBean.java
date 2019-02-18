@@ -15,4 +15,9 @@ public final class ComplexExcelBean implements IExcelBean {
     public List getData(Integer pageNo) {
         return null;
     }
+
+    @Override
+    public int getDataSize() {
+        return 0;
+    }
 }

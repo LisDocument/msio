@@ -17,4 +17,10 @@ public interface IExcelBean {
      * @return 该页转义后的数组
      */
     List getData(Integer pageNo);
+
+    /**
+     * 获取数据的总页数
+     * @return 便于遍历
+     */
+    int getDataSize();
 }

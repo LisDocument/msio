@@ -114,7 +114,7 @@ public final class ComplexExcelBeanReverse extends BaseExcelBeanReverse{
         String head = null;
         int titleNo = 0;
         //标题为空
-        if(0 == title.length && StringUtils.isEmpty(title[0])){
+        if(null == title || 0 == title.length || StringUtils.isEmpty(title[0])){
             //预留空标题处理项
         }else{
             titleNo = 1;

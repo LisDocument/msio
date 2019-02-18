@@ -81,15 +81,15 @@ public final class SimpleExcelBeanReverse extends BaseExcelBeanReverse{
             int ceil = (int)Math.ceil(list.size() * 1.0 / pageSize);
             //自动翻页操作，pageNo作为缓存的映射key传入
             if(1 == ceil){
-                writeToSheet(list,workbook.createSheet(),1);
+                writeToSheet(list,workbook.createSheet(),pageNo);
                 continue;
             }
             for (int i = 0; i < ceil; i++) {
                 if(list.size() < (i + 1) * pageSize){
-                    writeToSheet(list.subList(i * pageSize,list.size() - 1),workbook.createSheet(),ceil);
+                    writeToSheet(list.subList(i * pageSize,list.size() - 1),workbook.createSheet(), pageNo);
                     continue;
                 }
-                writeToSheet(list.subList(i*pageSize,(i + 1) * pageSize),workbook.createSheet(),ceil);
+                writeToSheet(list.subList(i*pageSize,(i + 1) * pageSize),workbook.createSheet(), pageNo);
             }
         }
     }
@@ -111,7 +111,7 @@ public final class SimpleExcelBeanReverse extends BaseExcelBeanReverse{
         int rowIndex = 1;
         String head = null;
         //标题为空
-        if(0 == title.length && StringUtils.isEmpty(title[0])){
+        if(null == title || 0 == title.length || StringUtils.isEmpty(title[0])){
             titleRow = sheet.createRow(0);
         }else{
             rowIndex = 2;

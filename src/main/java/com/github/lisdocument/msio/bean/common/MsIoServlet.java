@@ -125,17 +125,15 @@ public class MsIoServlet extends DispatcherServlet {
                             .setParams(CommonBean.OBJECT_MAPPER.writeValueAsString(request.getParameterMap()));
 
                     long last = System.currentTimeMillis();
-                    response.setContentType("application/vnd.ms-excel;charset=utf-8");
-                    response.setCharacterEncoding("utf-8");
-                    response.setHeader("Content-disposition", "attachment;filename=" + MsUtils.toUtf8String(fileName));
+
                     if(translator == null || !translator.isComplex()) {
                         IExcelBeanReverse ins = ExcelFactory.getSimpleExcelBeanReverseInstance((List) requestResult
                                 , type,null == translator ? new String[]{""} : translator.title(), (e, item) -> item);
-                        ins.getWorkbook().write(response.getOutputStream());
+                        ins.write(response, fileName);
                     }else if(translator.isComplex()){
                         IExcelBeanReverse ins = ExcelFactory.getComplexExcelBeanReverseInstance(translator.id()[0]
                                 ,(List)requestResult,type,translator.title(),(e, item) -> item);
-                        ins.getWorkbook().write(response.getOutputStream());
+                        ins.write(response, fileName);
                     }
                     downloadReword.setTime(System.currentTimeMillis());
                     downloadReword.setCostTime((int)(downloadReword.getTime() - last));

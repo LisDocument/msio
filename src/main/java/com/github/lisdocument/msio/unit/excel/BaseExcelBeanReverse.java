@@ -8,6 +8,9 @@ import com.github.lisdocument.msio.exception.DataUnCatchException;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 
@@ -93,6 +96,19 @@ public abstract class BaseExcelBeanReverse implements IExcelBeanReverse{
         this.mapKey = mapKey;
         this.title = title;
         translator();
+    }
+
+    @Override
+    public void write(HttpServletResponse response, String fileName) throws IOException {
+        response.setContentType("application/vnd.ms-excel;charset=utf-8");
+        response.setCharacterEncoding("utf-8");
+        response.setHeader("Content-disposition", "attachment;filename=" + MsUtils.toUtf8String(fileName));
+        workbook.write(response.getOutputStream());
+    }
+
+    @Override
+    public void write(OutputStream out) throws IOException{
+        workbook.write(out);
     }
 
     /**

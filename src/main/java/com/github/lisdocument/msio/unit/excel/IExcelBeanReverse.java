@@ -2,6 +2,10 @@ package com.github.lisdocument.msio.unit.excel;
 
 import org.apache.poi.ss.usermodel.Workbook;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.OutputStream;
+
 /**
  * Created with IntelliJ IDEA.
  * excel的导出公用方法
@@ -17,4 +21,18 @@ public interface IExcelBeanReverse {
      */
     Workbook getWorkbook();
 
+    /**
+     * 文件写出方法
+     * @param response 响应
+     * @param fileName 文件名称
+     * @throws IOException 写入时出错
+     */
+    void write(HttpServletResponse response, String fileName) throws IOException;
+
+    /**
+     * 文件写出方法
+     * @param out 输出流
+     * @throws IOException 写入时出错
+     */
+    void write(OutputStream out) throws IOException;
 }

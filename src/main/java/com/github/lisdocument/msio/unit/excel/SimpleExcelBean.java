@@ -149,7 +149,7 @@ public final class SimpleExcelBean extends BaseExcelBean {
     SimpleExcelBean(@NotNull File file,@NotNull boolean isChangeClass){
         this(file);
         this.isTuring = true;
-        this.isChangeClass = true;
+        this.isChangeClass = isChangeClass;
         automaticPageTurningWithoutMapping();
     }
 
@@ -158,14 +158,18 @@ public final class SimpleExcelBean extends BaseExcelBean {
      * 未指定反射对象迭代获取
      */
     private void automaticPageTurningWithoutMapping(){
+        log.info("导入任务开始：");
+        long start = System.currentTimeMillis();
         for (int i = 0; i < getPageSize(); i++) {
             try {
+
                 dataCache.put(i, this.getPageContent(i));
             } catch (IndexOutOfSheetSizeException | UnsupportFormatException | NoSuchMethodException e) {
                 log.error("迭代时发生异常，异常页" + i);
                 e.printStackTrace();
             }
         }
+        log.info("导入任务完结，共花费时间" + (System.currentTimeMillis() - start) + "ms");
     }
     /**
      * 指定反射对象迭代获取
@@ -193,6 +197,11 @@ public final class SimpleExcelBean extends BaseExcelBean {
     @SuppressWarnings("all")
     protected int getPageSize(){
         return workbook.getNumberOfSheets();
+    }
+
+    @Override
+    public int getDataSize() {
+        return getPageSize();
     }
 
     /**
@@ -244,11 +253,11 @@ public final class SimpleExcelBean extends BaseExcelBean {
         }
         List list = new ArrayList();
         if(clazz == Map.class){
-            for (int i = rowIndex; i < sheetNow.getLastRowNum(); i++) {
+            for (int i = rowIndex; i <= sheetNow.getLastRowNum(); i++) {
                 list.add(conversionMap(sheetNow.getRow(rowIndex), inversion, titles));
             }
         }else{
-            for (int i = rowIndex; i < sheetNow.getLastRowNum(); i++) {
+            for (int i = rowIndex; i <= sheetNow.getLastRowNum(); i++) {
                 list.add(conversionPojo(sheetNow.getRow(rowIndex), inversion, titles, clazz, mapping));
             }
         }
