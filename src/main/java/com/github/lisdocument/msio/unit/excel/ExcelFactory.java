@@ -1,6 +1,7 @@
 package com.github.lisdocument.msio.unit.excel;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.github.lisdocument.msio.unit.func.OutExceptionHandler;
 import org.slf4j.Logger;
@@ -9,6 +10,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.constraints.NotNull;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -254,5 +258,26 @@ public class ExcelFactory {
     public static IExcelBeanReverse getComplexExcelBeanReverseInstance(Map<Integer,List> data,boolean asycSign, boolean localCache, ExcelFactory.ExcelDealType type,
                             int localCacheSize, int pageSize, Map<Integer, String> mapKey,String[] title, OutExceptionHandler handler) {
         return new ComplexExcelBeanReverse(data,asycSign,localCache,type,localCacheSize,pageSize,mapKey,title,handler);
+    }
+
+    /**
+     * 获取模板导出集成类
+     * @param fileName 模板名
+     * @param data 导入的映射数据
+     * @return 处理单元
+     * @throws FileNotFoundException 模板名未找到对应的文件
+     */
+    public static IExcelBeanReverse getModelExcelBeanReverseInstance(String fileName, List data) throws FileNotFoundException {
+        return new ModelExcelBean(fileName, data);
+    }
+    /**
+     * 获取模板导出集成类
+     * @param fileName 模板名
+     * @param data 导入的映射数据
+     * @return 处理单元
+     * @throws FileNotFoundException 模板名未找到对应的文件
+     */
+    public static IExcelBeanReverse getModelExcelBeanReverseInstance(String fileName, Object data) throws FileNotFoundException{
+        return new ModelExcelBean(fileName, Collections.singletonList(data));
     }
 }

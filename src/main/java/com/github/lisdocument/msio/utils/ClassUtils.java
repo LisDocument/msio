@@ -239,4 +239,26 @@ public class ClassUtils {
             }
         }
     }
+
+    /**
+     * 根据key对给与的映射获取对应的值，如果没有匹配返回空
+     * @param key 调用链
+     * @param value 待被调用的初始对象
+     * @return 调用后返回的数据组，如果调用失败没有找到对应类的话，则返回''
+     */
+    public static String getValueByInvoke(String key, Object value){
+        String[] module = key.split(".");
+        Object result = value;
+        for (String s : module) {
+            if(null == result){
+                return "";
+            }
+            if(result instanceof Map){
+                result = ((Map) result).get(s);
+            }else{
+                result = getFieldValue(s, result, result.getClass());
+            }
+        }
+        return null == result ? "" : result.toString();
+    }
 }

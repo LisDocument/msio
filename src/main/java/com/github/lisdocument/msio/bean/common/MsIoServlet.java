@@ -21,6 +21,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.util.NestedServletException;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -57,7 +58,7 @@ public class MsIoServlet extends DispatcherServlet {
     protected void doDispatch(HttpServletRequest request, HttpServletResponse response) throws Exception {
         HttpServletRequest processedRequest = request;
         //更改请求url
-        servletAssessUtils.changeRequestURI(request);
+        //servletAssessUtils.changeRequestURI(request,response);
         //添加一个request
         processedRequest.setAttribute(INFO,servletAssessUtils.getRequestUri(request));
         HandlerExecutionChain mappedHandler = null;
@@ -70,8 +71,8 @@ public class MsIoServlet extends DispatcherServlet {
             try {
                 processedRequest = checkMultipart(request);
                 multipartRequestParsed = (processedRequest != request);
-
                 // Determine handler for the current request.
+
                 mappedHandler = getHandler(processedRequest);
                 if (mappedHandler == null || mappedHandler.getHandler() == null) {
                     noHandlerFound(processedRequest, response);
@@ -95,13 +96,38 @@ public class MsIoServlet extends DispatcherServlet {
                 if (!servletAssessUtils.applyPreHandle(mappedHandler, processedRequest, response)) {
                     return;
                 }
+                //用户访问原路径拦截请求成功，开始解析更换后的新的请求
+                //封装一个新的请求,更改路径
+                HttpServletRequestWrapper httpServletRequestWrapper = new HttpServletRequestWrapper(request) {
+                    @Override
+                    public String getRequestURI() {
+                        String path = super.getRequestURI();
+                        path = path.substring(1);
+                        int i = path.indexOf("/");
+                        path = path.substring(i);
+                        return path;
+                    }
+                };
+
+                HandlerExecutionChain handler = getHandler(httpServletRequestWrapper);
+                if (handler == null || handler.getHandler() == null) {
+                    noHandlerFound(httpServletRequestWrapper, response);
+                    return;
+                }
+                //拦截器
+                if (!servletAssessUtils.applyPreHandle(handler, httpServletRequestWrapper, response)) {
+                    return;
+                }
 
                 // Actually invoke the handler.
                 // transport to excel
                 //------------------------------//
-                Method invokeMethod = ((HandlerMethod) mappedHandler.getHandler()).getMethod();
+                Method invokeMethod = ((HandlerMethod) handler.getHandler()).getMethod();
                 MsReturnTranslator translator = invokeMethod.getDeclaredAnnotation(MsReturnTranslator.class);
-                Object requestResult = servletAssessUtils.getRequestResult(request,response, mappedHandler);
+                Object requestResult = servletAssessUtils.getRequestResult(request,response, handler);
+
+                //完成后直接调用拦截器的后续操作
+                servletAssessUtils.applyPostHandle(handler,httpServletRequestWrapper, response, mv);
                 MsTranslateOperator msTranslateOperator = requestResult.getClass().getDeclaredAnnotation(MsTranslateOperator.class);
                 //转义List操作
                 String fileName = "download.xlsx";

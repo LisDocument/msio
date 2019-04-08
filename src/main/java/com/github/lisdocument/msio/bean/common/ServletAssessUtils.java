@@ -20,7 +20,9 @@ import org.springframework.web.servlet.HandlerExecutionChain;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 
+import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -147,33 +149,45 @@ final class ServletAssessUtils{
      * 使用剩下的url进行模拟请求数据处理
      * @param request 请求实体
      */
-    void changeRequestURI(@NonNull ServletRequest request){
-        RequestFacade requestFacade = (RequestFacade) request;
-        Class clazz = RequestFacade.class;
-        try{
-            Field field = clazz.getDeclaredField("request");
-            field.setAccessible(true);
-            Request req = (Request) field.get(requestFacade);
-            Class<? extends Request> aClass = req.getClass();
-            Field coyoteRequest = aClass.getDeclaredField("coyoteRequest");
-            coyoteRequest.setAccessible(true);
-            org.apache.coyote.Request req1 = (org.apache.coyote.Request) coyoteRequest.get(req);
-            Class<org.apache.coyote.Request> requestClass = org.apache.coyote.Request.class;
-            //获取org.apache.coyote.Request中保存路径的字段
-            Field uriMBField= requestClass.getDeclaredField("uriMB");
-            uriMBField.setAccessible(true);
-            MessageBytes uriMB=(MessageBytes)uriMBField.get(req1);
-            //这里就是改变路径的地方
-            String path = uriMB.toString();
-            path = path.substring(1);
-            int i = path.indexOf("/");
-            path = path.substring(i);
-            //给值
-            uriMB.setString(path);
-            uriMBField.set(req1,uriMB);
-        }catch (NoSuchFieldException | IllegalAccessException e) {
+    void changeRequestURI(@NonNull ServletRequest request, ServletResponse response){
+        String path = ((HttpServletRequest) request).getRequestURI();
+        path = path.substring(1);
+        int i = path.indexOf("/");
+        path = path.substring(i);
+        try {
+            request.getRequestDispatcher(path).include(request, response);
+        } catch (ServletException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
             e.printStackTrace();
         }
+
+//        RequestFacade requestFacade = (RequestFacade) request;
+//        Class clazz = RequestFacade.class;
+//        try{
+//            Field field = clazz.getDeclaredField("request");
+//            field.setAccessible(true);
+//            Request req = (Request) field.get(requestFacade);
+//            Class<? extends Request> aClass = req.getClass();
+//            Field coyoteRequest = aClass.getDeclaredField("coyoteRequest");
+//            coyoteRequest.setAccessible(true);
+//            org.apache.coyote.Request req1 = (org.apache.coyote.Request) coyoteRequest.get(req);
+//            Class<org.apache.coyote.Request> requestClass = org.apache.coyote.Request.class;
+//            //获取org.apache.coyote.Request中保存路径的字段
+//            Field uriMBField= requestClass.getDeclaredField("uriMB");
+//            uriMBField.setAccessible(true);
+//            MessageBytes uriMB=(MessageBytes)uriMBField.get(req1);
+//            //这里就是改变路径的地方
+//            String path = uriMB.toString();
+//            path = path.substring(1);
+//            int i = path.indexOf("/");
+//            path = path.substring(i);
+//            //给值
+//            uriMB.setString(path);
+//            uriMBField.set(req1,uriMB);
+//        }catch (NoSuchFieldException | IllegalAccessException e) {
+//            e.printStackTrace();
+//        }
     }
 
     /**
